@@ -1,2 +1,3 @@
 # mt-lang
-My Tiny Lang - DSL for web UI development
+
+~Mihail Tratsiuk's~ My Tiny Lang
