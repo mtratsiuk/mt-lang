@@ -1,3 +1,5 @@
+import { Expr, NumberLiteral, BinPlusOp } from "./ast.ts";
+
 type StateProps = {
   source?: string;
   location?: number;
@@ -6,6 +8,7 @@ type StateProps = {
 export class State {
   source: string;
   location: number;
+  line: number;
 
   static from(source: string): State {
     return new State({ source });
@@ -14,10 +17,11 @@ export class State {
   constructor({ source, location }: StateProps = {}) {
     this.source = source || "";
     this.location = location || 0;
+    this.line = 0;
   }
 
-  peek(n: number = 1): string {
-    return this.source.slice(this.location, this.location + n);
+  peek(n: number = 0): string {
+    return this.source[this.location + n];
   }
 
   advance(n: number): State {
@@ -31,6 +35,8 @@ export class State {
 
 type Parser<T> = (state: State) => [T | null, State];
 
+type PT<T> = T extends Parser<infer K> ? K : T;
+
 export type RunParser = <T>(
   source: string,
   parser: Parser<T>,
@@ -42,9 +48,17 @@ export const runParser: RunParser = (
   return parser(new State({ source }));
 };
 
-export type Seq = <T>(
-  sequence: () => Generator<Parser<any>, T, T>,
-) => Parser<T>;
+export type Parse = <T>(
+  source: string,
+  parser: Parser<T>,
+) => ReturnType<typeof parser>[0];
+export const parse: Parse = (source, parser) => {
+  return runParser(source, parser)[0];
+};
+
+export type Seq = <T, R>(
+  sequence: () => Generator<Parser<T>, R, T>,
+) => Parser<R>;
 export const seq: Seq = (sequence) =>
   (state) => {
     const iter = sequence();
@@ -60,7 +74,7 @@ export const seq: Seq = (sequence) =>
       ([result, newState] = parser.value(newState));
 
       if (result === null) {
-        return [result, state];
+        return [null, state];
       }
 
       parser = iter.next(result);
@@ -128,17 +142,20 @@ export const plus = createParser(/\+/);
 
 export const whitespace = createParser(/\s/);
 
-export const number = fmap(many(numeric), (chars) => +chars.join(""));
+export const number = fmap(
+  many(numeric),
+  (chars) => new NumberLiteral(+chars.join("")),
+);
 
-export const skip = many(whitespace);
+export const skip = fmap(many(whitespace), Expr.from);
 
-export const expr = seq<number>(function* () {
+export const binaryPlusExpr: ReturnType<typeof seq> = seq(function* () {
   yield skip;
   const left = yield number;
   yield skip;
   yield plus;
   yield skip;
-  const right = yield number;
+  const right = yield or(binaryPlusExpr, number);
   yield skip;
-  return left + right;
+  return new BinPlusOp(left, right);
 });

@@ -1,38 +1,37 @@
-import {
-  assertEquals,
-} from "https://deno.land/std/testing/asserts.ts";
+import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
-import { number, State, numeric, expr } from "./parser.ts";
-
-Deno.test("number", () => {
-  Deno.test("expected input", () => {
-    const state = State.from("123");
-    assertEquals(number(state), [1, state.clone({ location: 1 })]);
-  });
-});
+import { number, numeric, parse, binaryPlusExpr } from "./parser.ts";
+import { NumberLiteral, BinPlusOp } from "./ast.ts";
 
 Deno.test("numeric", () => {
-  const state = State.from("123");
-  assertEquals(numeric(state), ["1", state.clone({ location: 1 })]);
+  assertEquals(parse("123", numeric), "1");
 });
 
 Deno.test("number", () => {
-  const state = State.from("123");
-  assertEquals(number(state), [123, state.clone({ location: 3 })]);
+  assertEquals(parse("123", number), new NumberLiteral(123));
 });
 
-Deno.test("expr", () => {
-  let state = State.from(" 25 +    25  ");
-
+Deno.test("binaryPlusExpr", () => {
   assertEquals(
-    expr(state),
-    [50, state.clone({ location: state.source.length })],
+    parse(" 25 +    25  ", binaryPlusExpr),
+    new BinPlusOp(new NumberLiteral(25), new NumberLiteral(25)),
   );
 
-  state = State.from("25+25");
+  assertEquals(
+    parse("25+25", binaryPlusExpr),
+    new BinPlusOp(new NumberLiteral(25), new NumberLiteral(25)),
+  );
 
   assertEquals(
-    expr(state),
-    [50, state.clone({ location: state.source.length })],
+    parse("25 25", binaryPlusExpr),
+    null,
+  );
+
+  assertEquals(
+    parse("25 + 25 + 50", binaryPlusExpr),
+    new BinPlusOp(
+      new NumberLiteral(25),
+      new BinPlusOp(new NumberLiteral(25), new NumberLiteral(50)),
+    ),
   );
 });
