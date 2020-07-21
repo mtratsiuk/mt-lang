@@ -1,8 +1,9 @@
-import { Expr, NumberLiteral, BinPlusOp } from "./ast.ts";
+import { Expr, NumLit, BinPlusOp } from "./ast.ts";
 
 type StateProps = {
   source?: string;
   location?: number;
+  line?: number;
 };
 
 export class State {
@@ -14,22 +15,28 @@ export class State {
     return new State({ source });
   }
 
-  constructor({ source, location }: StateProps = {}) {
+  constructor({ source, location, line }: StateProps = {}) {
     this.source = source || "";
     this.location = location || 0;
-    this.line = 0;
+    this.line = line || 0;
   }
 
-  peek(n: number = 0): string {
-    return this.source[this.location + n];
+  peek(): string {
+    return this.source[this.location];
   }
 
-  advance(n: number): State {
-    return this.clone({ location: this.location + n });
+  nextChar(): State {
+    this.location += 1;
+    return this;
   }
 
-  clone(state: Partial<State>): State {
-    return new State({ ...this, ...state });
+  nextLine(): State {
+    this.line += 1;
+    return this;
+  }
+
+  clone(): State {
+    return new State({ ...this });
   }
 }
 
@@ -63,24 +70,23 @@ export const seq: Seq = (sequence) =>
   (state) => {
     const iter = sequence();
     let parser = iter.next();
-    let result;
-    let newState = state;
 
     if (parser.done) {
       throw new Error();
     }
 
     do {
-      ([result, newState] = parser.value(newState));
+      let [result, newState] = parser.value(state);
 
       if (result === null) {
         return [null, state];
       }
 
+      state = newState;
       parser = iter.next(result);
     } while (!parser.done);
 
-    return [parser.value, newState];
+    return [parser.value, state];
   };
 
 export type CreateParser = (regexp: RegExp) => Parser<string>;
@@ -89,22 +95,37 @@ export const createParser: CreateParser = (regexp) =>
     const char = state.peek();
 
     if (regexp.test(char)) {
-      return [char, state.advance(1)];
+      return [char, state.clone().nextChar()];
     }
 
     return [null, state];
   };
 
-export type FMap = <T, K>(parser: Parser<T>, f: (x: T) => K) => Parser<K>;
-export const fmap: FMap = (parser, f) =>
+export type Map = <T, K>(parser: Parser<T>, f: (x: T) => K) => Parser<K>;
+export const map: Map = (parser, f) =>
   (state) => {
     const [result, newState] = parser(state);
 
     if (result === null) {
-      return [null, newState];
+      return [null, state];
     }
 
     return [f(result), newState];
+  };
+
+export type MapState = <T>(
+  parser: Parser<T>,
+  f: (x: T, s: State) => State,
+) => Parser<T>;
+export const mapState: MapState = (parser, f) =>
+  (state) => {
+    const [result, newState] = parser(state);
+
+    if (result === null) {
+      return [null, state];
+    }
+
+    return [result, f(result, newState.clone())];
   };
 
 export type Many = <T>(parser: Parser<T>) => Parser<T[]>;
@@ -116,6 +137,7 @@ export const many: Many = (parser) =>
 
     while (parseResult !== null) {
       result.push(parseResult);
+
       ([parseResult, state] = parser(state));
     }
 
@@ -140,14 +162,17 @@ export const alpha = createParser(/[a-zA-Z]/);
 
 export const plus = createParser(/\+/);
 
-export const whitespace = createParser(/\s/);
-
-export const number = fmap(
-  many(numeric),
-  (chars) => new NumberLiteral(+chars.join("")),
+export const whitespace = mapState(
+  createParser(/\s/),
+  (c, s) => c === "\n" ? s.nextLine() : s,
 );
 
-export const skip = fmap(many(whitespace), Expr.from);
+export const number = map(
+  many(numeric),
+  (chars) => new NumLit(+chars.join("")),
+);
+
+export const skip = map(many(whitespace), Expr.from);
 
 export const binaryPlusExpr: ReturnType<typeof seq> = seq(function* () {
   yield skip;
@@ -156,6 +181,5 @@ export const binaryPlusExpr: ReturnType<typeof seq> = seq(function* () {
   yield plus;
   yield skip;
   const right = yield or(binaryPlusExpr, number);
-  yield skip;
   return new BinPlusOp(left, right);
 });
