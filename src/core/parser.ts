@@ -1,4 +1,4 @@
-import { Expr, NumLit, BinPlusOp } from "./ast.ts";
+import { Expr, NumLit, BinPlusOp, StrLit } from "./ast.ts";
 
 type StateProps = {
   source?: string;
@@ -72,7 +72,7 @@ export const seq: Seq = (sequence) =>
     let parser = iter.next();
 
     if (parser.done) {
-      throw new Error();
+      throw new Error("expected seq to yield a parser");
     }
 
     do {
@@ -89,12 +89,12 @@ export const seq: Seq = (sequence) =>
     return [parser.value, state];
   };
 
-export type CreateParser = (regexp: RegExp) => Parser<string>;
-export const createParser: CreateParser = (regexp) =>
+export type CreateParser = <T>(test: (param: T, char: string) => boolean) => (param: T) => Parser<string>;
+export const createParser: CreateParser = (test) => (param) =>
   (state) => {
     const char = state.peek();
 
-    if (regexp.test(char)) {
+    if (test(param, char)) {
       return [char, state.clone().nextChar()];
     }
 
@@ -156,14 +156,18 @@ export const or: Or = (left, right) =>
     return right(state);
   };
 
-export const numeric = createParser(/[0-9]/);
+export const regexp = createParser((p: RegExp, c) => p.test(c))
 
-export const alpha = createParser(/[a-zA-Z]/);
+export const char = createParser((p: string, c) => p === c)
 
-export const plus = createParser(/\+/);
+export const numeric = regexp(/[0-9]/);
+
+export const alpha = regexp(/[a-zA-Z]/);
+
+export const plus = regexp(/\+/);
 
 export const whitespace = mapState(
-  createParser(/\s/),
+  regexp(/\s/),
   (c, s) => c === "\n" ? s.nextLine() : s,
 );
 
@@ -172,9 +176,18 @@ export const number = map(
   (chars) => new NumLit(+chars.join("")),
 );
 
-export const skip = map(many(whitespace), Expr.from);
+export const string = seq(function* () {
+  yield char('"')
+  const value = yield map(many(regexp(/./g)), chars => new StrLit(chars.join("")))
+  yield char('"')
+  return value
+})
 
-export const binaryPlusExpr: ReturnType<typeof seq> = seq(function* () {
+export const skip = map(many(whitespace), () => new Expr());
+
+export const primary = or(number)
+
+export const binaryPlusExpr: Parser<BinPlusOp> = seq(function* () {
   yield skip;
   const left = yield number;
   yield skip;
