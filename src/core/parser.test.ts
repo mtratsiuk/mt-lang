@@ -2,13 +2,14 @@ import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
 import {
   number,
+  string,
   numeric,
   parse,
   runParser,
   binaryPlusExpr,
   State,
 } from "./parser.ts";
-import { NumLit, BinPlusOp } from "./ast.ts";
+import { NumLit, BinPlusOp, StrLit } from "./ast.ts";
 
 Deno.test("numeric", () => {
   assertEquals(parse("123", numeric), "1");
@@ -16,6 +17,14 @@ Deno.test("numeric", () => {
 
 Deno.test("number", () => {
   assertEquals(parse("123", number), new NumLit(123));
+  assertEquals(parse("", number), null);
+});
+
+Deno.test("string", () => {
+  assertEquals(parse('"text"', string), new StrLit("text"));
+  assertEquals(parse('""', string), new StrLit(""));
+  assertEquals(parse('"\n"', string), null);
+  assertEquals(parse('"25"', string), new StrLit("25"));
 });
 
 Deno.test("binaryPlusExpr", () => {
@@ -31,6 +40,16 @@ Deno.test("binaryPlusExpr", () => {
 
   assertEquals(
     parse("25 25", binaryPlusExpr),
+    null,
+  );
+
+  assertEquals(
+    parse("25 +", binaryPlusExpr),
+    null,
+  );
+
+  assertEquals(
+    parse('25 + "25"', binaryPlusExpr),
     null,
   );
 

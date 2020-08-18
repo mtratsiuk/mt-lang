@@ -63,43 +63,62 @@ export const parse: Parse = (source, parser) => {
   return runParser(source, parser)[0];
 };
 
-export type Seq = <T, R>(
-  sequence: () => Generator<Parser<T>, R, T>,
-) => Parser<R>;
-export const seq: Seq = (sequence) =>
-  (state) => {
-    const iter = sequence();
-    let parser = iter.next();
+export class SeqBreakSignal {}
+export type EmitParser = <T>(p: Parser<T>) => T;
+export type GetState = () => State;
 
-    if (parser.done) {
-      throw new Error("expected seq to yield a parser");
+export const createEmitParser: (state: State) => [EmitParser, GetState] = (
+  state,
+) => {
+  let currentState = state;
+
+  const emitParser: EmitParser = (parser) => {
+    const [result, newState] = parser(currentState);
+
+    if (result === null) {
+      throw new SeqBreakSignal();
     }
 
-    do {
-      let [result, newState] = parser.value(state);
+    currentState = newState;
 
-      if (result === null) {
+    return result;
+  };
+
+  return [emitParser, () => currentState];
+};
+
+export type Seq = <R>(seq: (emit: EmitParser) => R) => Parser<R>;
+export const seq: Seq = (sequence) =>
+  (state) => {
+    const [emit, getState] = createEmitParser(state);
+
+    try {
+      const result = sequence(emit);
+
+      return [result, getState()];
+    } catch (error) {
+      if (error instanceof SeqBreakSignal) {
         return [null, state];
       }
 
-      state = newState;
-      parser = iter.next(result);
-    } while (!parser.done);
-
-    return [parser.value, state];
-  };
-
-export type CreateParser = <T>(test: (param: T, char: string) => boolean) => (param: T) => Parser<string>;
-export const createParser: CreateParser = (test) => (param) =>
-  (state) => {
-    const char = state.peek();
-
-    if (test(param, char)) {
-      return [char, state.clone().nextChar()];
+      throw error;
     }
-
-    return [null, state];
   };
+
+export type CreateParser = <T>(
+  test: (param: T, char: string) => boolean,
+) => (param: T) => Parser<string>;
+export const createParser: CreateParser = (test) =>
+  (param) =>
+    (state) => {
+      const char = state.peek();
+
+      if (test(param, char)) {
+        return [char, state.clone().nextChar()];
+      }
+
+      return [null, state];
+    };
 
 export type Map = <T, K>(parser: Parser<T>, f: (x: T) => K) => Parser<K>;
 export const map: Map = (parser, f) =>
@@ -144,6 +163,18 @@ export const many: Many = (parser) =>
     return [result, state];
   };
 
+export type OneOrMore = <T>(parser: Parser<T>) => Parser<T[]>;
+export const oneOrMore: OneOrMore = (parser) =>
+  (state) => {
+    const [result, newState] = many(parser)(state);
+
+    if (result?.length !== 0) {
+      return [result, newState];
+    }
+
+    return [null, state];
+  };
+
 export type Or = <T, K>(left: Parser<T>, right: Parser<K>) => Parser<T | K>;
 export const or: Or = (left, right) =>
   (state) => {
@@ -156,9 +187,9 @@ export const or: Or = (left, right) =>
     return right(state);
   };
 
-export const regexp = createParser((p: RegExp, c) => p.test(c))
+export const regexp = createParser((p: RegExp, c) => p.test(c));
 
-export const char = createParser((p: string, c) => p === c)
+export const char = createParser((p: string, c) => p === c);
 
 export const numeric = regexp(/[0-9]/);
 
@@ -172,27 +203,25 @@ export const whitespace = mapState(
 );
 
 export const number = map(
-  many(numeric),
+  oneOrMore(numeric),
   (chars) => new NumLit(+chars.join("")),
 );
 
-export const string = seq(function* () {
-  yield char('"')
-  const value = yield map(many(regexp(/./g)), chars => new StrLit(chars.join("")))
-  yield char('"')
-  return value
-})
+export const string = seq((emit) => {
+  emit(char('"'));
+  const chars = emit(many(regexp(/[^"\n]/)));
+  emit(char('"'));
+  return new StrLit(chars.join(""));
+});
 
 export const skip = map(many(whitespace), () => new Expr());
 
-export const primary = or(number)
-
-export const binaryPlusExpr: Parser<BinPlusOp> = seq(function* () {
-  yield skip;
-  const left = yield number;
-  yield skip;
-  yield plus;
-  yield skip;
-  const right = yield or(binaryPlusExpr, number);
+export const binaryPlusExpr: Parser<BinPlusOp> = seq((emit) => {
+  emit(skip);
+  const left = emit(number);
+  emit(skip);
+  emit(plus);
+  emit(skip);
+  const right = emit(or(binaryPlusExpr, number));
   return new BinPlusOp(left, right);
 });
