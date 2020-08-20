@@ -8,8 +8,20 @@ import {
   runParser,
   binaryPlusExpr,
   State,
+  boolean,
+  unary,
+  multiplication,
 } from "./parser.ts";
-import { NumLit, BinPlusOp, StrLit } from "./ast.ts";
+import {
+  NumLit,
+  BinPlusOp,
+  StrLit,
+  BoolLit,
+  UnaryNotOp,
+  UnaryMinusOp,
+  BinMultOp,
+  BinDivOp,
+} from "./ast.ts";
 
 Deno.test("numeric", () => {
   assertEquals(parse("123", numeric), "1");
@@ -25,6 +37,39 @@ Deno.test("string", () => {
   assertEquals(parse('""', string), new StrLit(""));
   assertEquals(parse('"\n"', string), null);
   assertEquals(parse('"25"', string), new StrLit("25"));
+  assertEquals(parse('"true"', string), new StrLit("true"));
+});
+
+Deno.test("boolean", () => {
+  assertEquals(parse("true", boolean), new BoolLit(true));
+  assertEquals(parse("false", boolean), new BoolLit(false));
+  assertEquals(parse("trflse", boolean), null);
+  assertEquals(parse("truefalse", boolean), new BoolLit(true));
+});
+
+Deno.test("multiplication", () => {
+  assertEquals(
+    parse("2 * 2", multiplication),
+    new BinMultOp(new NumLit(2), new NumLit(2)),
+  );
+  assertEquals(
+    parse("2*2", multiplication),
+    new BinMultOp(new NumLit(2), new NumLit(2)),
+  );
+  assertEquals(
+    parse("2*2/2", multiplication),
+    new BinDivOp(new BinMultOp(new NumLit(2), new NumLit(2)), new NumLit(2)),
+  );
+});
+
+Deno.test("unary", () => {
+  assertEquals(parse("!true", unary), new UnaryNotOp(new BoolLit(true)));
+  assertEquals(parse("-5", unary), new UnaryMinusOp(new NumLit(5)));
+  assertEquals(
+    parse("--5", unary),
+    new UnaryMinusOp(new UnaryMinusOp(new NumLit(5))),
+  );
+  assertEquals(parse("15", unary), new NumLit(15));
 });
 
 Deno.test("binaryPlusExpr", () => {

@@ -69,6 +69,10 @@ const defineBinOpExpr = (name: string) =>
 defineLitExpr("NumLit", T.Number);
 defineLitExpr("StrLit", T.String);
 defineLitExpr("BoolLit", T.Boolean);
+
+defineExpr("UnaryNotOp", ["value", T.Expr]);
+defineExpr("UnaryMinusOp", ["value", T.Expr]);
+
 defineBinOpExpr("BinPlusOp");
 defineBinOpExpr("BinMinusOp");
 defineBinOpExpr("BinMultOp");

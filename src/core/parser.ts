@@ -1,4 +1,16 @@
-import { Expr, NumLit, BinPlusOp, StrLit } from "./ast.ts";
+import {
+  Expr,
+  NumLit,
+  BinPlusOp,
+  StrLit,
+  BoolLit,
+  UnaryNotOp,
+  UnaryMinusOp,
+  BinDivOp,
+  BinMultOp,
+} from "./ast.ts";
+
+import { id, cnst, isEmpty } from "../utils/mod.ts";
 
 type StateProps = {
   source?: string;
@@ -191,6 +203,9 @@ export const regexp = createParser((p: RegExp, c) => p.test(c));
 
 export const char = createParser((p: string, c) => p === c);
 
+export const chars = (cs: string) =>
+  seq((emit) => cs.split("").reduce((r, c) => r + emit(char(c)), ""));
+
 export const numeric = regexp(/[0-9]/);
 
 export const alpha = regexp(/[a-zA-Z]/);
@@ -201,6 +216,8 @@ export const whitespace = mapState(
   regexp(/\s/),
   (c, s) => c === "\n" ? s.nextLine() : s,
 );
+
+export const skip = many(whitespace);
 
 export const number = map(
   oneOrMore(numeric),
@@ -214,7 +231,52 @@ export const string = seq((emit) => {
   return new StrLit(chars.join(""));
 });
 
-export const skip = map(many(whitespace), () => new Expr());
+export const boolean = map(
+  or(
+    map(chars("true"), cnst(new BoolLit(true))),
+    map(chars("false"), cnst(new BoolLit(false))),
+  ),
+  id,
+);
+
+export const primary = or(number, or(string, boolean));
+
+export const unary: Parser<Expr> = or(
+  seq((emit) => {
+    const not = map(char("!"), cnst(UnaryNotOp));
+    const minus = map(char("-"), cnst(UnaryMinusOp));
+
+    const Op = emit(or(not, minus));
+    const expr = emit(unary);
+
+    return new Op(expr);
+  }),
+  primary,
+);
+
+export const multiplication = seq((emit) => {
+  emit(skip);
+  const left = emit(unary);
+  emit(skip);
+
+  const right = emit(many(seq((emit) => {
+    const div = map(char("/"), cnst(BinDivOp));
+    const mult = map(char("*"), cnst(BinMultOp));
+
+    const op = emit(or(div, mult));
+    emit(skip);
+    const expr = emit(unary);
+    emit(skip);
+
+    return [op, expr] as [typeof op, typeof expr];
+  })));
+
+  if (isEmpty(right)) {
+    return left;
+  }
+
+  return right.reduce((l, [Op, expr]) => new Op(l, expr), left);
+});
 
 export const binaryPlusExpr: Parser<BinPlusOp> = seq((emit) => {
   emit(skip);

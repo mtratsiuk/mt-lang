@@ -4,6 +4,8 @@ export type ExprVisitor<T> = {
   visitNumLit(value: NumLit): T;
   visitStrLit(value: StrLit): T;
   visitBoolLit(value: BoolLit): T;
+  visitUnaryNotOp(value: UnaryNotOp): T;
+  visitUnaryMinusOp(value: UnaryMinusOp): T;
   visitBinPlusOp(value: BinPlusOp): T;
   visitBinMinusOp(value: BinMinusOp): T;
   visitBinMultOp(value: BinMultOp): T;
@@ -43,6 +45,26 @@ export class BoolLit extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitBoolLit(this);
+  }
+}
+
+export class UnaryNotOp extends Expr {
+  constructor(public value: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitUnaryNotOp(this);
+  }
+}
+
+export class UnaryMinusOp extends Expr {
+  constructor(public value: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitUnaryMinusOp(this);
   }
 }
 
