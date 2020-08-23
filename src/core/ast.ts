@@ -6,10 +6,17 @@ export type ExprVisitor<T> = {
   visitBoolLit(value: BoolLit): T;
   visitUnaryNotOp(value: UnaryNotOp): T;
   visitUnaryMinusOp(value: UnaryMinusOp): T;
+  visitGrouping(value: Grouping): T;
   visitBinPlusOp(value: BinPlusOp): T;
   visitBinMinusOp(value: BinMinusOp): T;
   visitBinMultOp(value: BinMultOp): T;
   visitBinDivOp(value: BinDivOp): T;
+  visitBinMoreThanOp(value: BinMoreThanOp): T;
+  visitBinMoreThanOrEqOp(value: BinMoreThanOrEqOp): T;
+  visitBinLessThanOp(value: BinLessThanOp): T;
+  visitBinLessThanOrEqOp(value: BinLessThanOrEqOp): T;
+  visitBinEqOp(value: BinEqOp): T;
+  visitBinNotEqOp(value: BinNotEqOp): T;
 };
 
 export class Expr {
@@ -68,6 +75,16 @@ export class UnaryMinusOp extends Expr {
   }
 }
 
+export class Grouping extends Expr {
+  constructor(public expr: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitGrouping(this);
+  }
+}
+
 export class BinPlusOp extends Expr {
   constructor(public left: Expr, public right: Expr) {
     super();
@@ -105,5 +122,65 @@ export class BinDivOp extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitBinDivOp(this);
+  }
+}
+
+export class BinMoreThanOp extends Expr {
+  constructor(public left: Expr, public right: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBinMoreThanOp(this);
+  }
+}
+
+export class BinMoreThanOrEqOp extends Expr {
+  constructor(public left: Expr, public right: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBinMoreThanOrEqOp(this);
+  }
+}
+
+export class BinLessThanOp extends Expr {
+  constructor(public left: Expr, public right: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBinLessThanOp(this);
+  }
+}
+
+export class BinLessThanOrEqOp extends Expr {
+  constructor(public left: Expr, public right: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBinLessThanOrEqOp(this);
+  }
+}
+
+export class BinEqOp extends Expr {
+  constructor(public left: Expr, public right: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBinEqOp(this);
+  }
+}
+
+export class BinNotEqOp extends Expr {
+  constructor(public left: Expr, public right: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBinNotEqOp(this);
   }
 }

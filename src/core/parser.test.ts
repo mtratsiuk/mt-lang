@@ -5,12 +5,13 @@ import {
   string,
   numeric,
   parse,
-  runParser,
-  binaryPlusExpr,
-  State,
   boolean,
   unary,
   multiplication,
+  addition,
+  comparison,
+  equality,
+  expression,
 } from "./parser.ts";
 import {
   NumLit,
@@ -21,95 +22,142 @@ import {
   UnaryMinusOp,
   BinMultOp,
   BinDivOp,
+  BinMinusOp,
+  BinMoreThanOp,
+  BinLessThanOp,
+  BinLessThanOrEqOp,
+  BinMoreThanOrEqOp,
+  Expr,
+  BinEqOp,
+  BinNotEqOp,
+  Grouping,
 } from "./ast.ts";
+import { print } from "./ast-printer.ts";
+
+export type AssertAst = (left: Expr | null, right: Expr | null) => void;
+export const assertAst: AssertAst = (left, right) => {
+  if (left === null || right === null) {
+    assertEquals(left, right);
+    return;
+  }
+
+  assertEquals(print(left), print(right));
+};
 
 Deno.test("numeric", () => {
   assertEquals(parse("123", numeric), "1");
 });
 
 Deno.test("number", () => {
-  assertEquals(parse("123", number), new NumLit(123));
-  assertEquals(parse("", number), null);
+  assertAst(parse("123", number), new NumLit(123));
+  assertAst(parse("", number), null);
 });
 
 Deno.test("string", () => {
-  assertEquals(parse('"text"', string), new StrLit("text"));
-  assertEquals(parse('""', string), new StrLit(""));
-  assertEquals(parse('"\n"', string), null);
-  assertEquals(parse('"25"', string), new StrLit("25"));
-  assertEquals(parse('"true"', string), new StrLit("true"));
+  assertAst(parse('"text"', string), new StrLit("text"));
+  assertAst(parse('""', string), new StrLit(""));
+  assertAst(parse('"\n"', string), null);
+  assertAst(parse('"25"', string), new StrLit("25"));
+  assertAst(parse('"true"', string), new StrLit("true"));
 });
 
 Deno.test("boolean", () => {
-  assertEquals(parse("true", boolean), new BoolLit(true));
-  assertEquals(parse("false", boolean), new BoolLit(false));
-  assertEquals(parse("trflse", boolean), null);
-  assertEquals(parse("truefalse", boolean), new BoolLit(true));
-});
-
-Deno.test("multiplication", () => {
-  assertEquals(
-    parse("2 * 2", multiplication),
-    new BinMultOp(new NumLit(2), new NumLit(2)),
-  );
-  assertEquals(
-    parse("2*2", multiplication),
-    new BinMultOp(new NumLit(2), new NumLit(2)),
-  );
-  assertEquals(
-    parse("2*2/2", multiplication),
-    new BinDivOp(new BinMultOp(new NumLit(2), new NumLit(2)), new NumLit(2)),
-  );
+  assertAst(parse("true", boolean), new BoolLit(true));
+  assertAst(parse("false", boolean), new BoolLit(false));
+  assertAst(parse("trflse", boolean), null);
+  assertAst(parse("truefalse", boolean), new BoolLit(true));
 });
 
 Deno.test("unary", () => {
-  assertEquals(parse("!true", unary), new UnaryNotOp(new BoolLit(true)));
-  assertEquals(parse("-5", unary), new UnaryMinusOp(new NumLit(5)));
-  assertEquals(
+  assertAst(parse("!true", unary), new UnaryNotOp(new BoolLit(true)));
+  assertAst(parse("-5", unary), new UnaryMinusOp(new NumLit(5)));
+  assertAst(
     parse("--5", unary),
     new UnaryMinusOp(new UnaryMinusOp(new NumLit(5))),
   );
-  assertEquals(parse("15", unary), new NumLit(15));
+  assertAst(parse("15", unary), new NumLit(15));
 });
 
-Deno.test("binaryPlusExpr", () => {
-  assertEquals(
-    parse(" 25 +    25  ", binaryPlusExpr),
-    new BinPlusOp(new NumLit(25), new NumLit(25)),
+Deno.test("multiplication", () => {
+  assertAst(
+    parse("2 * 2", multiplication),
+    new BinMultOp(new NumLit(2), new NumLit(2)),
   );
-
-  assertEquals(
-    parse("25+25", binaryPlusExpr),
-    new BinPlusOp(new NumLit(25), new NumLit(25)),
+  assertAst(
+    parse("2*2", multiplication),
+    new BinMultOp(new NumLit(2), new NumLit(2)),
   );
-
-  assertEquals(
-    parse("25 25", binaryPlusExpr),
-    null,
+  assertAst(
+    parse("2*2/4", multiplication),
+    new BinDivOp(new BinMultOp(new NumLit(2), new NumLit(2)), new NumLit(4)),
   );
+});
 
-  assertEquals(
-    parse("25 +", binaryPlusExpr),
-    null,
+Deno.test("addition", () => {
+  assertAst(
+    parse("2 + 2", addition),
+    new BinPlusOp(new NumLit(2), new NumLit(2)),
   );
-
-  assertEquals(
-    parse('25 + "25"', binaryPlusExpr),
-    null,
+  assertAst(
+    parse("2+2", addition),
+    new BinPlusOp(new NumLit(2), new NumLit(2)),
   );
+  assertAst(
+    parse("2+2-4", addition),
+    new BinMinusOp(new BinPlusOp(new NumLit(2), new NumLit(2)), new NumLit(4)),
+  );
+});
 
-  const state = State.from("25 + 25\n +50");
+Deno.test("comparison", () => {
+  assertAst(
+    parse("5 > 2", comparison),
+    new BinMoreThanOp(new NumLit(5), new NumLit(2)),
+  );
+  assertAst(
+    parse("5 < 2", comparison),
+    new BinLessThanOp(new NumLit(5), new NumLit(2)),
+  );
+  assertAst(
+    parse("5 <= 2", comparison),
+    new BinLessThanOrEqOp(new NumLit(5), new NumLit(2)),
+  );
+  assertAst(
+    parse("5 >= 2", comparison),
+    new BinMoreThanOrEqOp(new NumLit(5), new NumLit(2)),
+  );
+});
 
-  assertEquals(
-    binaryPlusExpr(state),
-    [
+Deno.test("equality", () => {
+  assertAst(
+    parse("5 == 2", equality),
+    new BinEqOp(new NumLit(5), new NumLit(2)),
+  );
+  assertAst(
+    parse("5 != 2", equality),
+    new BinNotEqOp(new NumLit(5), new NumLit(2)),
+  );
+});
+
+Deno.test("expression", () => {
+  assertAst(
+    parse("5 + 2 * 10", expression),
+    new BinPlusOp(new NumLit(5), new BinMultOp(new NumLit(2), new NumLit(10))),
+  );
+  assertAst(
+    parse("(5 + 2) * 10", expression),
+    new BinMultOp(
+      new Grouping(new BinPlusOp(new NumLit(5), new NumLit(2))),
+      new NumLit(10),
+    ),
+  );
+  assertAst(
+    parse("5 + 2 * 10 == 25", expression),
+    new BinEqOp(
       new BinPlusOp(
-        new NumLit(25),
-        new BinPlusOp(new NumLit(25), new NumLit(50)),
+        new NumLit(5),
+        new BinMultOp(new NumLit(2), new NumLit(10)),
       ),
-      new State(
-        { source: state.source, location: state.source.length, line: 1 },
-      ),
-    ],
+      new NumLit(25),
+    ),
   );
 });

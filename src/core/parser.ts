@@ -4,10 +4,18 @@ import {
   BinPlusOp,
   StrLit,
   BoolLit,
+  Grouping,
   UnaryNotOp,
   UnaryMinusOp,
   BinDivOp,
   BinMultOp,
+  BinMinusOp,
+  BinMoreThanOrEqOp,
+  BinMoreThanOp,
+  BinLessThanOrEqOp,
+  BinLessThanOp,
+  BinEqOp,
+  BinNotEqOp,
 } from "./ast.ts";
 
 import { id, cnst, isEmpty } from "../utils/mod.ts";
@@ -239,7 +247,18 @@ export const boolean = map(
   id,
 );
 
-export const primary = or(number, or(string, boolean));
+export const grouping = seq((emit) => {
+  emit(skip);
+  emit(char("("));
+  emit(skip);
+  const expr = emit(expression);
+  emit(skip);
+  emit(char(")"));
+  emit(skip);
+  return new Grouping(expr);
+});
+
+export const primary = or(number, or(string, or(boolean, grouping)));
 
 export const unary: Parser<Expr> = or(
   seq((emit) => {
@@ -254,36 +273,61 @@ export const unary: Parser<Expr> = or(
   primary,
 );
 
-export const multiplication = seq((emit) => {
-  emit(skip);
-  const left = emit(unary);
-  emit(skip);
-
-  const right = emit(many(seq((emit) => {
-    const div = map(char("/"), cnst(BinDivOp));
-    const mult = map(char("*"), cnst(BinMultOp));
-
-    const op = emit(or(div, mult));
+export type CreateBinaryOpParser = (
+  operand: Parser<Expr>,
+  ...operators: Parser<typeof BinPlusOp>[]
+) => Parser<Expr>;
+export const createBinaryOpParser: CreateBinaryOpParser = (
+  operand,
+  ...operators
+) =>
+  seq((emit) => {
     emit(skip);
-    const expr = emit(unary);
+    const left = emit(operand);
     emit(skip);
 
-    return [op, expr] as [typeof op, typeof expr];
-  })));
+    const right = emit(many(seq((emit) => {
+      const ops = operators.reduce(or);
 
-  if (isEmpty(right)) {
-    return left;
-  }
+      const op = emit(ops);
+      emit(skip);
+      const expr = emit(operand);
+      emit(skip);
 
-  return right.reduce((l, [Op, expr]) => new Op(l, expr), left);
-});
+      return [op, expr] as [typeof op, typeof expr];
+    })));
 
-export const binaryPlusExpr: Parser<BinPlusOp> = seq((emit) => {
-  emit(skip);
-  const left = emit(number);
-  emit(skip);
-  emit(plus);
-  emit(skip);
-  const right = emit(or(binaryPlusExpr, number));
-  return new BinPlusOp(left, right);
-});
+    if (isEmpty(right)) {
+      return left;
+    }
+
+    return right.reduce((l, [Op, expr]) => new Op(l, expr), left);
+  });
+
+export const multiplication = createBinaryOpParser(
+  unary,
+  map(char("/"), cnst(BinDivOp)),
+  map(char("*"), cnst(BinMultOp)),
+);
+
+export const addition = createBinaryOpParser(
+  multiplication,
+  map(char("+"), cnst(BinPlusOp)),
+  map(char("-"), cnst(BinMinusOp)),
+);
+
+export const comparison = createBinaryOpParser(
+  addition,
+  map(chars(">="), cnst(BinMoreThanOrEqOp)),
+  map(char(">"), cnst(BinMoreThanOp)),
+  map(chars("<="), cnst(BinLessThanOrEqOp)),
+  map(char("<"), cnst(BinLessThanOp)),
+);
+
+export const equality = createBinaryOpParser(
+  comparison,
+  map(chars("=="), cnst(BinEqOp)),
+  map(chars("!="), cnst(BinNotEqOp)),
+);
+
+export const expression = equality;

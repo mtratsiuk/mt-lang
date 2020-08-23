@@ -73,10 +73,18 @@ defineLitExpr("BoolLit", T.Boolean);
 defineExpr("UnaryNotOp", ["value", T.Expr]);
 defineExpr("UnaryMinusOp", ["value", T.Expr]);
 
+defineExpr("Grouping", ["expr", T.Expr]);
+
 defineBinOpExpr("BinPlusOp");
 defineBinOpExpr("BinMinusOp");
 defineBinOpExpr("BinMultOp");
 defineBinOpExpr("BinDivOp");
+defineBinOpExpr("BinMoreThanOp");
+defineBinOpExpr("BinMoreThanOrEqOp");
+defineBinOpExpr("BinLessThanOp");
+defineBinOpExpr("BinLessThanOrEqOp");
+defineBinOpExpr("BinEqOp");
+defineBinOpExpr("BinNotEqOp");
 
 function main() {
   Deno.writeTextFileSync(Deno.args[0], generateAst(ast));
