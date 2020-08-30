@@ -331,3 +331,5 @@ export const equality = createBinaryOpParser(
 );
 
 export const expression = equality;
+
+export const mtlang = expression;
