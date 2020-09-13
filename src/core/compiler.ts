@@ -19,6 +19,9 @@ import {
   Expr,
 } from "./ast.ts";
 
+export type Compile = (value: Expr) => string;
+export const compile: Compile = (value) => Compiler.compile(value);
+
 export class Compiler implements ExprVisitor<string> {
   static compile(value: Expr): string {
     return value.accept(new Compiler());

@@ -20,8 +20,9 @@ import {
   Grouping,
 } from "./ast.ts";
 
-import { parse, mtlang } from "./parser.ts";
-import { Compiler } from "./compiler.ts";
+import { parse } from "./parser-combinators.ts";
+import { mtlang } from "./parser.ts";
+import { compile } from "./compiler.ts";
 
 Deno.test("compiler", () => {
   const tests: [Expr, string][] = [
@@ -40,7 +41,7 @@ Deno.test("compiler", () => {
   ];
 
   for (const [ast, expected] of tests) {
-    assertEquals(Compiler.compile(ast), expected);
+    assertEquals(compile(ast), expected);
   }
 });
 
@@ -56,6 +57,6 @@ Deno.test("parse & compile", () => {
     const actual = parse(mtInput, mtlang);
 
     assert(actual, `failed to parse: ${mtInput}`);
-    assertEquals(Compiler.compile(actual), expected);
+    assertEquals(compile(actual), expected);
   }
 });

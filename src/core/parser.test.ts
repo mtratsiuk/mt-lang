@@ -1,10 +1,11 @@
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
+import { parse } from "./parser-combinators.ts";
+
 import {
   number,
   string,
   numeric,
-  parse,
   boolean,
   unary,
   multiplication,
@@ -13,6 +14,7 @@ import {
   equality,
   expression,
 } from "./parser.ts";
+
 import {
   NumLit,
   BinPlusOp,
@@ -32,6 +34,7 @@ import {
   BinNotEqOp,
   Grouping,
 } from "./ast.ts";
+
 import { print } from "./ast-printer.ts";
 
 export type AssertAst = (left: Expr | null, right: Expr | null) => void;
