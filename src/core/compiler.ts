@@ -1,3 +1,5 @@
+import { pass } from "../utils/mod.ts";
+
 import {
   ExprVisitor,
   NumLit,
@@ -30,6 +32,8 @@ export class Compiler implements ExprVisitor<string> {
   compile(value: Expr): string {
     return value.accept(this);
   }
+
+  visitParseError = pass;
 
   visitNumLit({ value }: NumLit): string {
     return String(value);

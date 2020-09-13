@@ -18,3 +18,8 @@ export const cnst: Const = (x) => () => x;
 
 export type Identity = <T>(x: T) => T;
 export const id: Identity = (x) => x;
+
+export type Pass = () => never;
+export const pass: Pass = () => {
+  throw new Error("pass");
+};

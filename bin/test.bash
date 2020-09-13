@@ -2,4 +2,4 @@
 
 set -exu
 
-deno test
+deno test $@

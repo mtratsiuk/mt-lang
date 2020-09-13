@@ -1,11 +1,10 @@
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
-import { parse } from "./parser-combinators.ts";
+import { parse, runParser } from "./parser-combinators.ts";
 
 import {
   number,
   string,
-  numeric,
   boolean,
   unary,
   multiplication,
@@ -13,6 +12,7 @@ import {
   comparison,
   equality,
   expression,
+  mtlang,
 } from "./parser.ts";
 
 import {
@@ -33,9 +33,23 @@ import {
   BinEqOp,
   BinNotEqOp,
   Grouping,
+  ParseError,
 } from "./ast.ts";
 
 import { print } from "./ast-printer.ts";
+
+const unterminatedStringErr = new ParseError(
+  'Expected `"` terminating a string',
+);
+const unterminatedGroupingErr = new ParseError(
+  "Expected `)` after expression",
+);
+const missingExprGroupingErr = new ParseError(
+  "Expected expression after `(`",
+);
+const expectedExpressionErr = new ParseError(
+  "Expected expression",
+);
 
 export type AssertAst = (left: Expr | null, right: Expr | null) => void;
 export const assertAst: AssertAst = (left, right) => {
@@ -47,10 +61,35 @@ export const assertAst: AssertAst = (left, right) => {
   assertEquals(print(left), print(right));
 };
 
-Deno.test("numeric", () => {
-  assertEquals(parse("123", numeric), "1");
+Deno.test("location tracking", () => {
+  let [_, state] = runParser("123", mtlang);
+  assertEquals(state.location, 3);
+
+  [_, state] = runParser("123 + \n123", mtlang);
+  assertEquals(state.location, 10);
+  assertEquals(state.line, 1);
+
+  [_, state] = runParser("\n123 + \n123\n", mtlang);
+  assertEquals(state.location, 12);
+  assertEquals(state.line, 3);
 });
 
+Deno.test("error tracking", () => {
+  let [_, state] = runParser('"unterminated string', mtlang);
+  assertEquals(state.errors, [unterminatedStringErr]);
+
+  [_, state] = runParser("(5 + 5", mtlang);
+  assertEquals(state.errors, [unterminatedGroupingErr]);
+
+  [_, state] = runParser("()", mtlang);
+  assertEquals(state.errors, [expectedExpressionErr]);
+
+  [_, state] = runParser("5 + ", mtlang);
+  assertEquals(state.errors, [expectedExpressionErr]);
+
+  [_, state] = runParser('5 + ; "haha', mtlang);
+  assertEquals(state.errors, [expectedExpressionErr, unterminatedStringErr]);
+});
 Deno.test("number", () => {
   assertAst(parse("123", number), new NumLit(123));
   assertAst(parse("", number), null);
@@ -59,7 +98,9 @@ Deno.test("number", () => {
 Deno.test("string", () => {
   assertAst(parse('"text"', string), new StrLit("text"));
   assertAst(parse('""', string), new StrLit(""));
-  assertAst(parse('"\n"', string), null);
+  assertAst(parse('"\n"', string), unterminatedStringErr);
+  assertAst(parse('"123', string), unterminatedStringErr);
+  assertAst(parse("123", string), null);
   assertAst(parse('"25"', string), new StrLit("25"));
   assertAst(parse('"true"', string), new StrLit("true"));
 });

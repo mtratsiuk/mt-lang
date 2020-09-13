@@ -1,6 +1,7 @@
+import { EOF } from "./parser-state.ts";
+
 import {
   regexp,
-  mapState,
   many,
   map,
   oneOrMore,
@@ -29,6 +30,7 @@ import {
   BinLessThanOp,
   BinEqOp,
   BinNotEqOp,
+  ParseError,
 } from "./ast.ts";
 
 import { id, cnst, isEmpty } from "../utils/mod.ts";
@@ -61,31 +63,33 @@ export const createBinaryOpParser: CreateBinaryOpParser = (
       return left;
     }
 
-    return right.reduce((l, [Op, expr]) => new Op(l, expr), left);
+    return right.reduce((l, r) => {
+      if (r instanceof ParseError) {
+        return r;
+      }
+
+      const [Op, expr] = r;
+      return new Op(l, expr);
+    }, left);
   });
 
-export const numeric = regexp(/[0-9]/);
+export const eof = char(EOF);
 
-export const alpha = regexp(/[a-zA-Z]/);
+export const semi = char(";");
 
-export const plus = regexp(/\+/);
-
-export const whitespace = mapState(
-  regexp(/\s/),
-  (c, s) => c === "\n" ? s.nextLine() : s,
-);
+export const whitespace = regexp(/\s/);
 
 export const skip = many(whitespace);
 
 export const number = map(
-  oneOrMore(numeric),
+  oneOrMore(regexp(/[0-9]/)),
   (chars) => new NumLit(+chars.join("")),
 );
 
 export const string = seq((emit) => {
   emit(char('"'));
   const chars = emit(many(regexp(/[^"\n]/)));
-  emit(char('"'));
+  emit(char('"'), 'Expected `"` terminating a string');
   return new StrLit(chars.join(""));
 });
 
@@ -101,14 +105,17 @@ export const grouping = seq((emit) => {
   emit(skip);
   emit(char("("));
   emit(skip);
-  const expr = emit(expression);
+  const expr = emit(expression, "Expected expression after `(`");
   emit(skip);
-  emit(char(")"));
+  emit(char(")"), "Expected `)` after expression");
   emit(skip);
   return new Grouping(expr);
 });
 
-export const primary = or(number, or(string, or(boolean, grouping)));
+export const primary = seq((emit) => {
+  const prim = or(number, or(string, or(boolean, grouping)));
+  return emit(prim, "Expected expression");
+});
 
 export const unary: Parser<Expr> = or(
   seq((emit) => {
@@ -151,4 +158,19 @@ export const equality = createBinaryOpParser(
 
 export const expression = equality;
 
-export const mtlang = expression;
+export const expressionStmt = seq((emit) => {
+  const expr = emit(expression);
+  emit(semi, "Expected `;` after expression");
+  return expr;
+});
+
+export const statements = many(expressionStmt);
+
+export const mtlang = map(
+  seq((emit) => {
+    const stmts = emit(statements);
+    emit(eof, "Expected end of file");
+    return stmts;
+  }),
+  (stmts) => Array.isArray(stmts) ? stmts : [stmts],
+);

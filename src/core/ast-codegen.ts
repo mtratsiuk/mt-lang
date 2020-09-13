@@ -75,6 +75,8 @@ defineExpr("UnaryMinusOp", ["value", T.Expr]);
 
 defineExpr("Grouping", ["expr", T.Expr]);
 
+defineExpr("ParseError", ["message", T.String]);
+
 defineBinOpExpr("BinPlusOp");
 defineBinOpExpr("BinMinusOp");
 defineBinOpExpr("BinMultOp");

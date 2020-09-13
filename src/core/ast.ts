@@ -7,6 +7,7 @@ export type ExprVisitor<T> = {
   visitUnaryNotOp(value: UnaryNotOp): T;
   visitUnaryMinusOp(value: UnaryMinusOp): T;
   visitGrouping(value: Grouping): T;
+  visitParseError(value: ParseError): T;
   visitBinPlusOp(value: BinPlusOp): T;
   visitBinMinusOp(value: BinMinusOp): T;
   visitBinMultOp(value: BinMultOp): T;
@@ -82,6 +83,16 @@ export class Grouping extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitGrouping(this);
+  }
+}
+
+export class ParseError extends Expr {
+  constructor(public message: string) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitParseError(this);
   }
 }
 

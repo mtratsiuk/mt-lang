@@ -1,4 +1,6 @@
-import { State } from "./parser-state.ts";
+import { State, EOF } from "./parser-state.ts";
+
+import { ParseError, Expr } from "./ast.ts";
 
 export type Parser<T> = (state: State) => [T | null, State];
 
@@ -24,7 +26,13 @@ export const parse: Parse = (source, parser) => {
 };
 
 export class SeqBreakSignal {}
-export type EmitParser = <T>(p: Parser<T>) => T;
+export class SeqErrorSignal {
+  constructor(public message: string) {}
+}
+export class SeqDeepErrorSignal {
+  constructor(public error: ParseError, public state: State) {}
+}
+export type EmitParser = <T>(p: Parser<T>, e?: string) => T;
 export type GetState = () => State;
 
 export const createEmitParser: (state: State) => [EmitParser, GetState] = (
@@ -32,10 +40,18 @@ export const createEmitParser: (state: State) => [EmitParser, GetState] = (
 ) => {
   let currentState = state;
 
-  const emitParser: EmitParser = (parser) => {
+  const emitParser: EmitParser = (parser, error) => {
     const [result, newState] = parser(currentState);
 
+    if (result instanceof ParseError) {
+      throw new SeqDeepErrorSignal(result, newState);
+    }
+
     if (result === null) {
+      if (error) {
+        throw new SeqErrorSignal(error);
+      }
+
       throw new SeqBreakSignal();
     }
 
@@ -47,7 +63,7 @@ export const createEmitParser: (state: State) => [EmitParser, GetState] = (
   return [emitParser, () => currentState];
 };
 
-export type Seq = <R>(seq: (emit: EmitParser) => R) => Parser<R>;
+export type Seq = <R>(seq: (emit: EmitParser) => R) => Parser<R | ParseError>;
 export const seq: Seq = (sequence) =>
   (state) => {
     const [emit, getState] = createEmitParser(state);
@@ -56,12 +72,21 @@ export const seq: Seq = (sequence) =>
       const result = sequence(emit);
 
       return [result, getState()];
-    } catch (error) {
-      if (error instanceof SeqBreakSignal) {
+    } catch (signal) {
+      if (signal instanceof SeqBreakSignal) {
         return [null, state];
       }
 
-      throw error;
+      if (signal instanceof SeqErrorSignal) {
+        const err = new ParseError(signal.message);
+        return [err, state.clone().error(err).synchronize()];
+      }
+
+      if (signal instanceof SeqDeepErrorSignal) {
+        return [signal.error, signal.state];
+      }
+
+      throw signal;
     }
   };
 
@@ -73,11 +98,11 @@ export const createParser: CreateParser = (test) =>
     (state) => {
       const char = state.peek();
 
-      if (test(param, char)) {
-        return [char, state.clone().nextChar()];
+      if (!test(param, char)) {
+        return [null, state];
       }
 
-      return [null, state];
+      return [char, state.clone().nextChar()];
     };
 
 export type Map = <T, K>(parser: Parser<T>, f: (x: T) => K) => Parser<K>;
@@ -112,12 +137,17 @@ export const many: Many = (parser) =>
   (state) => {
     const result = [];
     let parseResult;
-    [parseResult, state] = parser(state);
 
-    while (parseResult !== null) {
-      result.push(parseResult);
+    for (;;) {
+      [parseResult, state] = parser(state);
 
-      ([parseResult, state] = parser(state));
+      if (parseResult !== null) {
+        result.push(parseResult);
+      }
+
+      if (parseResult === null || state.isAtEnd()) {
+        break;
+      }
     }
 
     return [result, state];

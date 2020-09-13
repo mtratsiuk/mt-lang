@@ -20,7 +20,7 @@ import {
   Grouping,
 } from "./ast.ts";
 
-import { parse } from "./parser-combinators.ts";
+import { parse, runParser } from "./parser-combinators.ts";
 import { mtlang } from "./parser.ts";
 import { compile } from "./compiler.ts";
 
@@ -47,16 +47,17 @@ Deno.test("compiler", () => {
 
 Deno.test("parse & compile", () => {
   const tests: [string, string][] = [
-    ["1 + 1", "1 + 1"],
-    ["!true == false", "!true === false"],
-    ["(5 + 5) * 25 >= 250 - 250 + 250", "(5 + 5) * 25 >= 250 - 250 + 250"],
-    ["!!true", "!!true"],
+    ["1 + 1;", "1 + 1"],
+    ["!true == false;", "!true === false"],
+    ["(5 + 5) * 25 >= 250 - 250 + 250;", "(5 + 5) * 25 >= 250 - 250 + 250"],
+    ["!!true;", "!!true"],
   ];
 
   for (const [mtInput, expected] of tests) {
-    const actual = parse(mtInput, mtlang);
+    const [actual, state] = runParser(mtInput, mtlang);
 
+    assertEquals(state.errors, []);
     assert(actual, `failed to parse: ${mtInput}`);
-    assertEquals(compile(actual), expected);
+    assertEquals(compile(actual[0]), expected);
   }
 });
