@@ -1,6 +1,6 @@
-import { State, EOF } from "./parser-state.ts";
+import { EOF, State } from "./parser-state.ts";
 
-import { ParseError, Expr } from "./ast.ts";
+import { ParseError } from "./ast.ts";
 
 export type Parser<T> = (state: State) => [T | null, State];
 
@@ -168,7 +168,7 @@ export const oneOrMore: OneOrMore = (parser) =>
 export type Or = <T, K>(left: Parser<T>, right: Parser<K>) => Parser<T | K>;
 export const or: Or = (left, right) =>
   (state) => {
-    let [result, newState] = left(state);
+    const [result, newState] = left(state);
 
     if (result !== null) {
       return [result, newState];
@@ -177,9 +177,9 @@ export const or: Or = (left, right) =>
     return right(state);
   };
 
-export const regexp = createParser((p: RegExp, c) => p.test(c));
+export const regexp = createParser((p: RegExp, c) => c !== EOF && p.test(c));
 
-export const char = createParser((p: string, c) => p === c);
+export const char = createParser((p: string, c) => c !== EOF && p === c);
 
 export const chars = (cs: string) =>
   seq((emit) => cs.split("").reduce((r, c) => r + emit(char(c)), ""));

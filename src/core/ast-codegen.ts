@@ -5,10 +5,13 @@ enum T {
   Boolean = "boolean",
 }
 
+type ArrayType = (t: T) => `${typeof t}[]`;
+const arrayType: ArrayType = (t) => `${t}[]`;
+
 type Ast = {
   [base: string]: {
     name: string;
-    params: [string, T][];
+    params: [string, T | ReturnType<ArrayType>][];
   }[];
 };
 
@@ -30,7 +33,7 @@ const generateAst = (ast: Ast) => {
 
     code += `
       export class Expr {
-        accept<T>(visitor: ${Base}Visitor<T>): T {
+        accept<T>(_visitor: ${Base}Visitor<T>): T {
           throw new Error("not implemented")
         }
       }\n\n
@@ -63,30 +66,18 @@ const defineExpr = (name: string, ...params: Ast["Expr"][0]["params"]) => {
 const defineLitExpr = (name: string, type: T) =>
   defineExpr(name, ["value", type]);
 
-const defineBinOpExpr = (name: string) =>
-  defineExpr(name, ["left", T.Expr], ["right", T.Expr]);
-
 defineLitExpr("NumLit", T.Number);
 defineLitExpr("StrLit", T.String);
 defineLitExpr("BoolLit", T.Boolean);
 
+defineExpr("Identifier", ["name", T.String]);
+
+defineExpr("Call", ["callee", T.Expr], ["args", arrayType(T.Expr)]);
+
 defineExpr("UnaryNotOp", ["value", T.Expr]);
 defineExpr("UnaryMinusOp", ["value", T.Expr]);
 
-defineExpr("Grouping", ["expr", T.Expr]);
-
 defineExpr("ParseError", ["message", T.String]);
-
-defineBinOpExpr("BinPlusOp");
-defineBinOpExpr("BinMinusOp");
-defineBinOpExpr("BinMultOp");
-defineBinOpExpr("BinDivOp");
-defineBinOpExpr("BinMoreThanOp");
-defineBinOpExpr("BinMoreThanOrEqOp");
-defineBinOpExpr("BinLessThanOp");
-defineBinOpExpr("BinLessThanOrEqOp");
-defineBinOpExpr("BinEqOp");
-defineBinOpExpr("BinNotEqOp");
 
 function main() {
   Deno.writeTextFileSync(Deno.args[0], generateAst(ast));

@@ -5,6 +5,6 @@ set -exu
 cd "$(dirname "$0")"/..
 
 deno fmt --check
-# deno lint --unstable
+deno lint
 
 ./bin/test.bash

@@ -1,24 +1,15 @@
 import { pass } from "../utils/mod.ts";
 
 import {
+  BoolLit,
+  Call,
+  Expr,
   ExprVisitor,
+  Identifier,
   NumLit,
   StrLit,
-  BoolLit,
-  UnaryNotOp,
   UnaryMinusOp,
-  Grouping,
-  BinPlusOp,
-  BinMinusOp,
-  BinMultOp,
-  BinDivOp,
-  BinMoreThanOp,
-  BinMoreThanOrEqOp,
-  BinLessThanOp,
-  BinLessThanOrEqOp,
-  BinEqOp,
-  BinNotEqOp,
-  Expr,
+  UnaryNotOp,
 } from "./ast.ts";
 
 export type Compile = (value: Expr) => string;
@@ -40,11 +31,21 @@ export class Compiler implements ExprVisitor<string> {
   }
 
   visitStrLit({ value }: StrLit): string {
-    return value;
+    return `"${value}"`;
   }
 
   visitBoolLit({ value }: BoolLit): string {
     return String(value);
+  }
+
+  visitIdentifier({ name }: Identifier): string {
+    return name;
+  }
+
+  visitCall({ callee, args }: Call): string {
+    return `${this.compile(callee)}(${
+      args.map((a) => this.compile(a)).join(", ")
+    })`;
   }
 
   visitUnaryNotOp({ value }: UnaryNotOp): string {
@@ -53,49 +54,5 @@ export class Compiler implements ExprVisitor<string> {
 
   visitUnaryMinusOp({ value }: UnaryMinusOp): string {
     return `-${this.compile(value)}`;
-  }
-
-  visitGrouping({ expr }: Grouping): string {
-    return `(${this.compile(expr)})`;
-  }
-
-  visitBinPlusOp({ left, right }: BinPlusOp): string {
-    return `${this.compile(left)} + ${this.compile(right)}`;
-  }
-
-  visitBinMinusOp({ left, right }: BinMinusOp): string {
-    return `${this.compile(left)} - ${this.compile(right)}`;
-  }
-
-  visitBinMultOp({ left, right }: BinMultOp): string {
-    return `${this.compile(left)} * ${this.compile(right)}`;
-  }
-
-  visitBinDivOp({ left, right }: BinDivOp): string {
-    return `${this.compile(left)} / ${this.compile(right)}`;
-  }
-
-  visitBinMoreThanOp({ left, right }: BinMoreThanOp): string {
-    return `${this.compile(left)} > ${this.compile(right)}`;
-  }
-
-  visitBinMoreThanOrEqOp({ left, right }: BinMoreThanOrEqOp): string {
-    return `${this.compile(left)} >= ${this.compile(right)}`;
-  }
-
-  visitBinLessThanOp({ left, right }: BinLessThanOp): string {
-    return `${this.compile(left)} < ${this.compile(right)}`;
-  }
-
-  visitBinLessThanOrEqOp({ left, right }: BinLessThanOrEqOp): string {
-    return `${this.compile(left)} <= ${this.compile(right)}`;
-  }
-
-  visitBinEqOp({ left, right }: BinEqOp): string {
-    return `${this.compile(left)} === ${this.compile(right)}`;
-  }
-
-  visitBinNotEqOp({ left, right }: BinNotEqOp): string {
-    return `${this.compile(left)} !== ${this.compile(right)}`;
   }
 }

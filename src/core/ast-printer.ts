@@ -17,6 +17,7 @@ export const print: Print = (expr, depth = 0) => {
   return `${expr.constructor.name} {
 ${
     Object.getOwnPropertyNames(expr).map((key) =>
+      // deno-lint-ignore no-explicit-any
       `  ${offest}${key}: ${print((expr as any)[key], depth + 1)}`
     ).join("\n")
   }

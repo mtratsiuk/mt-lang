@@ -59,11 +59,11 @@ export class State {
   }
 
   synchronize(): State {
-    while (![";", EOF].includes(this.peek())) {
+    while (![")", EOF].includes(this.peek())) {
       this.nextChar();
     }
 
-    return this.nextChar();
+    return this;
   }
 
   isAtEnd(): boolean {

@@ -1,55 +1,43 @@
-import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assertEquals } from "../lib/asserts.ts";
 
 import { parse, runParser } from "./parser-combinators.ts";
 
 import {
-  number,
-  string,
   boolean,
-  unary,
-  multiplication,
-  addition,
-  comparison,
-  equality,
   expression,
   mtlang,
+  number,
+  string,
+  unary,
 } from "./parser.ts";
 
 import {
-  NumLit,
-  BinPlusOp,
-  StrLit,
   BoolLit,
-  UnaryNotOp,
-  UnaryMinusOp,
-  BinMultOp,
-  BinDivOp,
-  BinMinusOp,
-  BinMoreThanOp,
-  BinLessThanOp,
-  BinLessThanOrEqOp,
-  BinMoreThanOrEqOp,
+  Call,
   Expr,
-  BinEqOp,
-  BinNotEqOp,
-  Grouping,
+  Identifier,
+  NumLit,
   ParseError,
+  StrLit,
+  UnaryMinusOp,
+  UnaryNotOp,
 } from "./ast.ts";
 
 import { print } from "./ast-printer.ts";
 
-const unterminatedStringErr = new ParseError(
+const expectedQuoteClosingStringErr = new ParseError(
   'Expected `"` terminating a string',
 );
-const unterminatedGroupingErr = new ParseError(
-  "Expected `)` after expression",
-);
-const missingExprGroupingErr = new ParseError(
+const expectedExpressionAfterCallOpeningErr = new ParseError(
   "Expected expression after `(`",
 );
-const expectedExpressionErr = new ParseError(
-  "Expected expression",
+const expectedArgumentsErr = new ParseError(
+  "Expected arguments",
 );
+const expectedBracketClosingFunctionCallErr = new ParseError(
+  "Expected `)` closing function call",
+);
+const expectedStatementErr = new ParseError("Expected a statement");
 
 export type AssertAst = (left: Expr | null, right: Expr | null) => void;
 export const assertAst: AssertAst = (left, right) => {
@@ -65,31 +53,31 @@ Deno.test("location tracking", () => {
   let [_, state] = runParser("123", mtlang);
   assertEquals(state.location, 3);
 
-  [_, state] = runParser("123 + \n123", mtlang);
-  assertEquals(state.location, 10);
-  assertEquals(state.line, 1);
-
-  [_, state] = runParser("\n123 + \n123\n", mtlang);
-  assertEquals(state.location, 12);
-  assertEquals(state.line, 3);
+  [_, state] = runParser("(plus \n  2\n  4)", mtlang);
+  assertEquals(state.location, 15);
+  assertEquals(state.line, 2);
 });
 
 Deno.test("error tracking", () => {
-  let [_, state] = runParser('"unterminated string', mtlang);
-  assertEquals(state.errors, [unterminatedStringErr]);
+  let [_, state] = runParser("5", mtlang);
+  assertEquals(state.errors, [expectedStatementErr]);
 
-  [_, state] = runParser("(5 + 5", mtlang);
-  assertEquals(state.errors, [unterminatedGroupingErr]);
+  [_, state] = runParser('(concat "1" "2)', mtlang);
+  assertEquals(state.errors, [expectedQuoteClosingStringErr]);
 
-  [_, state] = runParser("()", mtlang);
-  assertEquals(state.errors, [expectedExpressionErr]);
+  [_, state] = runParser('(concat "1 "2")', mtlang);
+  assertEquals(state.errors, [expectedQuoteClosingStringErr]);
 
-  [_, state] = runParser("5 + ", mtlang);
-  assertEquals(state.errors, [expectedExpressionErr]);
+  [_, state] = runParser("(", mtlang);
+  assertEquals(state.errors, [expectedExpressionAfterCallOpeningErr]);
 
-  [_, state] = runParser('5 + ; "haha', mtlang);
-  assertEquals(state.errors, [expectedExpressionErr, unterminatedStringErr]);
+  [_, state] = runParser("(plus", mtlang);
+  assertEquals(state.errors, [expectedArgumentsErr]);
+
+  [_, state] = runParser("(plus 2 3", mtlang);
+  assertEquals(state.errors, [expectedBracketClosingFunctionCallErr]);
 });
+
 Deno.test("number", () => {
   assertAst(parse("123", number), new NumLit(123));
   assertAst(parse("", number), null);
@@ -98,8 +86,8 @@ Deno.test("number", () => {
 Deno.test("string", () => {
   assertAst(parse('"text"', string), new StrLit("text"));
   assertAst(parse('""', string), new StrLit(""));
-  assertAst(parse('"\n"', string), unterminatedStringErr);
-  assertAst(parse('"123', string), unterminatedStringErr);
+  assertAst(parse('"\n"', string), expectedQuoteClosingStringErr);
+  assertAst(parse('"123', string), expectedQuoteClosingStringErr);
   assertAst(parse("123", string), null);
   assertAst(parse('"25"', string), new StrLit("25"));
   assertAst(parse('"true"', string), new StrLit("true"));
@@ -120,88 +108,32 @@ Deno.test("unary", () => {
     new UnaryMinusOp(new UnaryMinusOp(new NumLit(5))),
   );
   assertAst(parse("15", unary), new NumLit(15));
-});
-
-Deno.test("multiplication", () => {
   assertAst(
-    parse("2 * 2", multiplication),
-    new BinMultOp(new NumLit(2), new NumLit(2)),
-  );
-  assertAst(
-    parse("2*2", multiplication),
-    new BinMultOp(new NumLit(2), new NumLit(2)),
-  );
-  assertAst(
-    parse("2*2/4", multiplication),
-    new BinDivOp(new BinMultOp(new NumLit(2), new NumLit(2)), new NumLit(4)),
-  );
-});
-
-Deno.test("addition", () => {
-  assertAst(
-    parse("2 + 2", addition),
-    new BinPlusOp(new NumLit(2), new NumLit(2)),
-  );
-  assertAst(
-    parse("2+2", addition),
-    new BinPlusOp(new NumLit(2), new NumLit(2)),
-  );
-  assertAst(
-    parse("2+2-4", addition),
-    new BinMinusOp(new BinPlusOp(new NumLit(2), new NumLit(2)), new NumLit(4)),
-  );
-});
-
-Deno.test("comparison", () => {
-  assertAst(
-    parse("5 > 2", comparison),
-    new BinMoreThanOp(new NumLit(5), new NumLit(2)),
-  );
-  assertAst(
-    parse("5 < 2", comparison),
-    new BinLessThanOp(new NumLit(5), new NumLit(2)),
-  );
-  assertAst(
-    parse("5 <= 2", comparison),
-    new BinLessThanOrEqOp(new NumLit(5), new NumLit(2)),
-  );
-  assertAst(
-    parse("5 >= 2", comparison),
-    new BinMoreThanOrEqOp(new NumLit(5), new NumLit(2)),
-  );
-});
-
-Deno.test("equality", () => {
-  assertAst(
-    parse("5 == 2", equality),
-    new BinEqOp(new NumLit(5), new NumLit(2)),
-  );
-  assertAst(
-    parse("5 != 2", equality),
-    new BinNotEqOp(new NumLit(5), new NumLit(2)),
+    parse("!(eq 4 4)", unary),
+    new UnaryNotOp(
+      new Call(new Identifier("eq"), [new NumLit(4), new NumLit(4)]),
+    ),
   );
 });
 
 Deno.test("expression", () => {
   assertAst(
-    parse("5 + 2 * 10", expression),
-    new BinPlusOp(new NumLit(5), new BinMultOp(new NumLit(2), new NumLit(10))),
+    parse("(add 5 7)", expression),
+    new Call(new Identifier("add"), [new NumLit(5), new NumLit(7)]),
   );
+
   assertAst(
-    parse("(5 + 2) * 10", expression),
-    new BinMultOp(
-      new Grouping(new BinPlusOp(new NumLit(5), new NumLit(2))),
-      new NumLit(10),
+    parse(
+      `(add
+          1
+          2
+          3)`,
+      expression,
     ),
-  );
-  assertAst(
-    parse("5 + 2 * 10 == 25", expression),
-    new BinEqOp(
-      new BinPlusOp(
-        new NumLit(5),
-        new BinMultOp(new NumLit(2), new NumLit(10)),
-      ),
-      new NumLit(25),
-    ),
+    new Call(new Identifier("add"), [
+      new NumLit(1),
+      new NumLit(2),
+      new NumLit(3),
+    ]),
   );
 });
