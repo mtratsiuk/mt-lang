@@ -9,6 +9,7 @@ import {
   number,
   string,
   unary,
+  variableDecl,
 } from "./parser.ts";
 
 import {
@@ -21,6 +22,7 @@ import {
   StrLit,
   UnaryMinusOp,
   UnaryNotOp,
+  VariableDecl,
 } from "./ast.ts";
 
 import { print } from "./ast-printer.ts";
@@ -30,9 +32,6 @@ const expectedQuoteClosingStringErr = new ParseError(
 );
 const expectedExpressionAfterCallOpeningErr = new ParseError(
   "Expected expression after `(`",
-);
-const expectedArgumentsErr = new ParseError(
-  "Expected arguments",
 );
 const expectedBracketClosingFunctionCallErr = new ParseError(
   "Expected `)` closing function call",
@@ -72,7 +71,7 @@ Deno.test("error tracking", () => {
   assertEquals(state.errors, [expectedExpressionAfterCallOpeningErr]);
 
   [_, state] = runParser("(plus", mtlang);
-  assertEquals(state.errors, [expectedArgumentsErr]);
+  assertEquals(state.errors, [expectedBracketClosingFunctionCallErr]);
 
   [_, state] = runParser("(plus 2 3", mtlang);
   assertEquals(state.errors, [expectedBracketClosingFunctionCallErr]);
@@ -135,5 +134,25 @@ Deno.test("expression", () => {
       new NumLit(2),
       new NumLit(3),
     ]),
+  );
+});
+
+Deno.test("variable declaration", () => {
+  assertAst(
+    parse(`(def pi 3)`, variableDecl),
+    new VariableDecl("pi", new NumLit(3)),
+  );
+
+  assertAst(
+    parse(
+      `(def
+         meaning
+         (plus 40 2))`,
+      variableDecl,
+    ),
+    new VariableDecl(
+      "meaning",
+      new Call(new Identifier("plus"), [new NumLit(40), new NumLit(2)]),
+    ),
   );
 });

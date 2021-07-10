@@ -8,13 +8,24 @@ Deno.test("parse & compile", () => {
   const tests: [string, string][] = [
     [
       `(add
-        1
-        -2
-        3)`,
+          1
+          -2
+          3)`,
       "add(1, -2, 3)",
     ],
+    ["(effect)", "effect()"],
     ['(concat "1" "2")', 'concat("1", "2")'],
     ["(eq !true false)", "eq(!true, false)"],
+    ["(def mean (plus 40 2))", "const mean = plus(40, 2);"],
+    [
+      `(def (mult a b)
+          (myMult a b))`,
+
+      `\
+function mult(a, b) {
+  return myMult(a, b);
+}`,
+    ],
   ];
 
   for (const [mtInput, expected] of tests) {

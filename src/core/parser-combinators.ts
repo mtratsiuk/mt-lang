@@ -4,7 +4,9 @@ import { ParseError } from "./ast.ts";
 
 export type Parser<T> = (state: State) => [T | null, State];
 
-export type PT<T> = T extends Parser<infer K> ? K : T;
+export type PT<T> = T extends Parser<(infer K) | ParseError> ? K
+  : T extends Parser<infer K> ? K
+  : never;
 
 export type RunParser = <T>(
   source: string,
@@ -32,7 +34,7 @@ export class SeqErrorSignal {
 export class SeqDeepErrorSignal {
   constructor(public error: ParseError, public state: State) {}
 }
-export type EmitParser = <T>(p: Parser<T>, e?: string) => T;
+export type EmitParser = <T>(p: Parser<T | ParseError> | null, e?: string) => T;
 export type GetState = () => State;
 
 export const createEmitParser: (state: State) => [EmitParser, GetState] = (
@@ -41,6 +43,10 @@ export const createEmitParser: (state: State) => [EmitParser, GetState] = (
   let currentState = state;
 
   const emitParser: EmitParser = (parser, error) => {
+    if (parser === null) {
+      throw new SeqBreakSignal();
+    }
+
     const [result, newState] = parser(currentState);
 
     if (result instanceof ParseError) {
@@ -115,6 +121,26 @@ export const map: Map = (parser, f) =>
     }
 
     return [f(result), newState];
+  };
+
+export type MapError = <T, K>(
+  parser: Parser<T | ParseError>,
+  mapE: (x: ParseError) => K,
+  mapV: (x: T) => K,
+) => Parser<K>;
+export const mapError: MapError = (parser, mapE, mapV) =>
+  (state) => {
+    const [result, newState] = parser(state);
+
+    if (result === null) {
+      return [null, state];
+    }
+
+    if (result instanceof ParseError) {
+      return [mapE(result), state];
+    }
+
+    return [mapV(result), newState];
   };
 
 export type MapState = <T>(

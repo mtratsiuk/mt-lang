@@ -79,6 +79,15 @@ defineExpr("UnaryMinusOp", ["value", T.Expr]);
 
 defineExpr("ParseError", ["message", T.String]);
 
+defineExpr("VariableDecl", ["name", T.String], ["value", T.Expr]);
+
+defineExpr(
+  "FunctionDecl",
+  ["name", T.String],
+  ["params", arrayType(T.String)],
+  ["body", arrayType(T.Expr)],
+);
+
 function main() {
   Deno.writeTextFileSync(Deno.args[0], generateAst(ast));
 }

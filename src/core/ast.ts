@@ -9,6 +9,8 @@ export type ExprVisitor<T> = {
   visitUnaryNotOp(value: UnaryNotOp): T;
   visitUnaryMinusOp(value: UnaryMinusOp): T;
   visitParseError(value: ParseError): T;
+  visitVariableDecl(value: VariableDecl): T;
+  visitFunctionDecl(value: FunctionDecl): T;
 };
 
 export class Expr {
@@ -94,5 +96,29 @@ export class ParseError extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitParseError(this);
+  }
+}
+
+export class VariableDecl extends Expr {
+  constructor(public name: string, public value: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitVariableDecl(this);
+  }
+}
+
+export class FunctionDecl extends Expr {
+  constructor(
+    public name: string,
+    public params: string[],
+    public body: Expr[],
+  ) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitFunctionDecl(this);
   }
 }

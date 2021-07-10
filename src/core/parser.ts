@@ -6,6 +6,7 @@ import {
   createParser,
   many,
   map,
+  mapError,
   oneOrMore,
   or,
   Parser,
@@ -17,18 +18,20 @@ import {
   BoolLit,
   Call,
   Expr,
+  FunctionDecl,
   Identifier,
   NumLit,
   StrLit,
   UnaryMinusOp,
   UnaryNotOp,
+  VariableDecl,
 } from "./ast.ts";
+
+import { isKeyword, Keywords } from "./keywords.ts";
 
 import { cnst } from "../utils/mod.ts";
 
 export const eof = createParser((_: void, c) => c === EOF)(void 0);
-
-export const semi = char(";");
 
 export const whitespace = regexp(/\s/);
 
@@ -40,11 +43,18 @@ export const alpha = regexp(/[a-zA-Z]/);
 
 export const alphaNumeric = or(numeric, alpha);
 
-export const identifier = seq((emit) => {
-  const firstChar = emit(alpha);
-  const rest = emit(many(or(alphaNumeric, char("-"))));
+export const def = chars(Keywords.DEFINE);
 
-  return new Identifier(firstChar + rest.join(""));
+export const identifier = seq((emit) => {
+  const name = emit(
+    oneOrMore(or(alphaNumeric, char("_"))),
+  ).join("");
+
+  if (isKeyword(name)) {
+    emit(null);
+  }
+
+  return new Identifier(name);
 });
 
 export const number = map(
@@ -70,18 +80,59 @@ export const call = seq((emit) => {
   const callee = emit(expression, "Expected expression after `(`");
 
   const args = emit(
-    oneOrMore(
+    many(
       seq((emit) => {
         emit(skip);
         return emit(expression);
       }),
     ),
-    "Expected arguments",
   );
 
   emit(char(")"), "Expected `)` closing function call");
 
   return new Call(callee, args);
+});
+
+export const variableDecl = seq((emit) => {
+  emit(char("("));
+  emit(def);
+  emit(skip);
+
+  const id = emit(identifier);
+  emit(skip);
+  const expr = emit(expression, "Expected expression");
+  emit(char(")"), "Expected `)` closing variable declaration");
+
+  return new VariableDecl(id.name, expr);
+});
+
+export const functionDecl = seq((emit) => {
+  emit(char("("));
+  emit(def);
+  emit(skip);
+
+  emit(char("("));
+  const id = emit(identifier, "Expected identifier");
+
+  const params = emit(
+    many(
+      mapError(
+        seq((emit) => {
+          emit(skip);
+          return emit(identifier);
+        }),
+        cnst(""),
+        ((id) => id.name),
+      ),
+    ),
+  );
+
+  emit(char(")"), "Expected `)` after parameters list");
+  emit(skip);
+  const body = emit(oneOrMore(statement), "Expected a statement");
+  emit(char(")"), "Expected `)` closing function declaration");
+
+  return new FunctionDecl(id.name, params, body);
 });
 
 export const primary = or(
@@ -104,17 +155,17 @@ export const unary: Parser<Expr> = or(
 
 export const expression = unary;
 
-export const statement = (seq((emit) => {
+export const statement: Parser<Expr> = seq((emit) => {
   emit(skip);
-  const expr = emit(call);
-  emit(skip);
+  const expr = emit(or(variableDecl, or(functionDecl, call)));
 
   return expr;
-}));
+});
 
 export const mtlang = map(
   seq((emit) => {
     const stmts = emit(oneOrMore(statement), "Expected a statement");
+    emit(skip);
     emit(eof, "Expected end of file");
     return stmts;
   }),
