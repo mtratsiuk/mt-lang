@@ -38,7 +38,6 @@ const expectedExpressionAfterCallOpeningErr = new ParseError(
 const expectedBracketClosingFunctionCallErr = new ParseError(
   "Expected `)` closing function call",
 );
-const expectedStatementErr = new ParseError("Expected a statement");
 
 export type AssertAst = (left: Expr | null, right: Expr | null) => void;
 export const assertAst: AssertAst = (left, right) => {
@@ -60,10 +59,7 @@ Deno.test("location tracking", () => {
 });
 
 Deno.test("error tracking", () => {
-  let [_, state] = runParser("5", mtlang);
-  assertEquals(state.errors, [expectedStatementErr]);
-
-  [_, state] = runParser('(concat "1" "2)', mtlang);
+  let [_, state] = runParser('(concat "1" "2)', mtlang);
   assertEquals(state.errors, [expectedQuoteClosingStringErr]);
 
   [_, state] = runParser('(concat "1 "2")', mtlang);

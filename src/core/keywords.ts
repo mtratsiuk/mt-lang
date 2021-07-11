@@ -2,6 +2,7 @@ export const Keywords = {
   DEFINE: "def",
   AND: "and",
   OR: "or",
+  PRINT: "print",
 };
 
 const keywords = new Set(Object.values(Keywords));

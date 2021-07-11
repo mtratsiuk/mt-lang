@@ -9,6 +9,7 @@ import {
   FunctionDecl,
   Identifier,
   NumLit,
+  Print,
   StrLit,
   UnaryMinusOp,
   UnaryNotOp,
@@ -19,8 +20,14 @@ import { BinaryOps } from "./keywords.ts";
 
 const IDENT = 2;
 
-export type Compile = (value: Expr) => string;
-export const compile: Compile = (value) => Compiler.compile(value);
+export type Compile = (value: Expr | Expr[]) => string;
+export const compile: Compile = (value) => {
+  if (!Array.isArray(value)) {
+    value = [value];
+  }
+
+  return value.map(Compiler.compile).join(";\n\n") + ";";
+};
 
 export class Compiler implements ExprVisitor<string> {
   _depth = 0;
@@ -55,6 +62,10 @@ export class Compiler implements ExprVisitor<string> {
     return `${this.compile(callee)}(${args.map(this.compile).join(", ")})`;
   }
 
+  visitPrint({ value }: Print): string {
+    return `console.log(${this.compile(value)})`;
+  }
+
   visitBinaryOp({ op, left, right }: BinaryOp): string {
     return `(${this.compile(left)} ${BinaryOps[op]} ${this.compile(right)})`;
   }
@@ -68,7 +79,7 @@ export class Compiler implements ExprVisitor<string> {
   }
 
   visitVariableDecl({ name, value }: VariableDecl): string {
-    return `const ${name} = ${this.compile(value)};`;
+    return `const ${name} = ${this.compile(value)}`;
   }
 
   visitFunctionDecl({ name, params, body }: FunctionDecl): string {

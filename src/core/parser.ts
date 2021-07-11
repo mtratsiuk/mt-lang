@@ -22,6 +22,7 @@ import {
   FunctionDecl,
   Identifier,
   NumLit,
+  Print,
   StrLit,
   UnaryMinusOp,
   UnaryNotOp,
@@ -110,6 +111,18 @@ export const call = seq((emit) => {
   return new Call(callee, args);
 });
 
+export const print = seq((emit) => {
+  emit(char("("));
+  emit(chars(Keywords.PRINT));
+  emit(skip);
+
+  const value = emit(expression, "Expected expression to print");
+
+  emit(char(")"), "Expected `)` closing print call");
+
+  return new Print(value);
+});
+
 export const variableDecl = seq((emit) => {
   emit(char("("));
   emit(def);
@@ -174,7 +187,7 @@ export const expression = unary;
 
 export const statement: Parser<Expr> = seq((emit) => {
   emit(skip);
-  const expr = emit(or(variableDecl, or(functionDecl, or(binary, call))));
+  const expr = emit(or(variableDecl, or(functionDecl, or(print, expression))));
 
   return expr;
 });
@@ -183,7 +196,6 @@ export const mtlang = map(
   seq((emit) => {
     const stmts = emit(oneOrMore(statement), "Expected a statement");
     emit(skip);
-    emit(eof, "Expected end of file");
     return stmts;
   }),
   (stmts) => Array.isArray(stmts) ? stmts : [stmts],

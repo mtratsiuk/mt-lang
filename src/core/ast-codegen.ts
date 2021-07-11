@@ -83,6 +83,8 @@ defineExpr("ParseError", ["message", T.String]);
 
 defineExpr("VariableDecl", ["name", T.String], ["value", T.Expr]);
 
+defineExpr("Print", ["value", T.Expr]);
+
 defineExpr(
   "FunctionDecl",
   ["name", T.String],

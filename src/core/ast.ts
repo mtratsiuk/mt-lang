@@ -11,6 +11,7 @@ export type ExprVisitor<T> = {
   visitUnaryMinusOp(value: UnaryMinusOp): T;
   visitParseError(value: ParseError): T;
   visitVariableDecl(value: VariableDecl): T;
+  visitPrint(value: Print): T;
   visitFunctionDecl(value: FunctionDecl): T;
 };
 
@@ -117,6 +118,16 @@ export class VariableDecl extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitVariableDecl(this);
+  }
+}
+
+export class Print extends Expr {
+  constructor(public value: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitPrint(this);
   }
 }
 
