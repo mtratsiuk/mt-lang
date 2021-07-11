@@ -3,6 +3,7 @@ import { assertEquals } from "../lib/asserts.ts";
 import { parse, runParser } from "./parser-combinators.ts";
 
 import {
+  binary,
   boolean,
   expression,
   mtlang,
@@ -13,6 +14,7 @@ import {
 } from "./parser.ts";
 
 import {
+  BinaryOp,
   BoolLit,
   Call,
   Expr,
@@ -111,6 +113,25 @@ Deno.test("unary", () => {
     parse("!(eq 4 4)", unary),
     new UnaryNotOp(
       new Call(new Identifier("eq"), [new NumLit(4), new NumLit(4)]),
+    ),
+  );
+});
+
+Deno.test("binary", () => {
+  assertAst(
+    parse("(+ 4 2)", binary),
+    new BinaryOp("+", new NumLit(4), new NumLit(2)),
+  );
+  assertAst(
+    parse("(- 4 2)", binary),
+    new BinaryOp("-", new NumLit(4), new NumLit(2)),
+  );
+  assertAst(
+    parse("(* (+ 2 2) 2)", binary),
+    new BinaryOp(
+      "*",
+      new BinaryOp("+", new NumLit(2), new NumLit(2)),
+      new NumLit(2),
     ),
   );
 });

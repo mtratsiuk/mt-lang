@@ -1,6 +1,7 @@
 import { pass } from "../utils/mod.ts";
 
 import {
+  BinaryOp,
   BoolLit,
   Call,
   Expr,
@@ -13,6 +14,8 @@ import {
   UnaryNotOp,
   VariableDecl,
 } from "./ast.ts";
+
+import { BinaryOps } from "./keywords.ts";
 
 const IDENT = 2;
 
@@ -50,6 +53,10 @@ export class Compiler implements ExprVisitor<string> {
 
   visitCall({ callee, args }: Call): string {
     return `${this.compile(callee)}(${args.map(this.compile).join(", ")})`;
+  }
+
+  visitBinaryOp({ op, left, right }: BinaryOp): string {
+    return `(${this.compile(left)} ${BinaryOps[op]} ${this.compile(right)})`;
   }
 
   visitUnaryNotOp({ value }: UnaryNotOp): string {

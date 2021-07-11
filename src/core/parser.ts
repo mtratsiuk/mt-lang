@@ -15,6 +15,7 @@ import {
 } from "./parser-combinators.ts";
 
 import {
+  BinaryOp,
   BoolLit,
   Call,
   Expr,
@@ -27,7 +28,7 @@ import {
   VariableDecl,
 } from "./ast.ts";
 
-import { isKeyword, Keywords } from "./keywords.ts";
+import { binaryOps, isKeyword, Keywords } from "./keywords.ts";
 
 import { cnst } from "../utils/mod.ts";
 
@@ -73,6 +74,22 @@ export const boolean = or(
   map(chars("true"), cnst(new BoolLit(true))),
   map(chars("false"), cnst(new BoolLit(false))),
 );
+
+export const binaryOpsP = binaryOps.map(chars).reduce(or);
+
+export const binary = seq((emit) => {
+  emit(char("("));
+
+  const op = emit(binaryOpsP);
+  emit(skip);
+  const left = emit(expression, "Expected first operand");
+  emit(skip);
+  const right = emit(expression, "Expected second operand");
+
+  emit(char(")"), "Expected `)` closing binary operation call");
+
+  return new BinaryOp(op, left, right);
+});
 
 export const call = seq((emit) => {
   emit(char("("));
@@ -137,7 +154,7 @@ export const functionDecl = seq((emit) => {
 
 export const primary = or(
   number,
-  or(string, or(boolean, or(identifier, call))),
+  or(string, or(boolean, or(identifier, or(binary, call)))),
 );
 
 export const unary: Parser<Expr> = or(
@@ -157,7 +174,7 @@ export const expression = unary;
 
 export const statement: Parser<Expr> = seq((emit) => {
   emit(skip);
-  const expr = emit(or(variableDecl, or(functionDecl, call)));
+  const expr = emit(or(variableDecl, or(functionDecl, or(binary, call))));
 
   return expr;
 });

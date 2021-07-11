@@ -6,6 +6,7 @@ export type ExprVisitor<T> = {
   visitBoolLit(value: BoolLit): T;
   visitIdentifier(value: Identifier): T;
   visitCall(value: Call): T;
+  visitBinaryOp(value: BinaryOp): T;
   visitUnaryNotOp(value: UnaryNotOp): T;
   visitUnaryMinusOp(value: UnaryMinusOp): T;
   visitParseError(value: ParseError): T;
@@ -66,6 +67,16 @@ export class Call extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitCall(this);
+  }
+}
+
+export class BinaryOp extends Expr {
+  constructor(public op: string, public left: Expr, public right: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBinaryOp(this);
   }
 }
 

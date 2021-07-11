@@ -74,6 +74,8 @@ defineExpr("Identifier", ["name", T.String]);
 
 defineExpr("Call", ["callee", T.Expr], ["args", arrayType(T.Expr)]);
 
+defineExpr("BinaryOp", ["op", T.String], ["left", T.Expr], ["right", T.Expr]);
+
 defineExpr("UnaryNotOp", ["value", T.Expr]);
 defineExpr("UnaryMinusOp", ["value", T.Expr]);
 
