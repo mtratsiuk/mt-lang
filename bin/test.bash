@@ -2,4 +2,6 @@
 
 set -exu
 
+cd "$(dirname "$0")"/..
+
 deno test $@

@@ -1,0 +1,12 @@
+(def myConst 10)
+
+(def (myFunc p)
+  (def local 5)
+  (def sub
+    (-
+      p
+      local))
+
+  (- myConst sub))
+
+(print (myFunc 20))

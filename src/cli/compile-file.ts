@@ -35,7 +35,7 @@ if (printStateArg) {
   printState(state);
 }
 
-console.log(result);
+await Deno.stdout.write(new TextEncoder().encode(result));
 
 export async function readStdin() {
   let input = "";

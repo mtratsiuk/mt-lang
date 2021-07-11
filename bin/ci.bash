@@ -8,3 +8,4 @@ deno fmt --check
 deno lint
 
 ./bin/test.bash
+./bin/e2e.bash

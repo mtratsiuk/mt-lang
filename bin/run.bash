@@ -4,4 +4,4 @@ set -eu
 
 cd "$(dirname "$0")"/..
 
-deno run --no-check $@ -
+deno run --no-check -q $@ -

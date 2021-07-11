@@ -63,7 +63,7 @@ export class Compiler implements ExprVisitor<string> {
   }
 
   visitPrint({ value }: Print): string {
-    return `console.log(${this.compile(value)})`;
+    return `console.log(String(${this.compile(value)}))`;
   }
 
   visitBinaryOp({ op, left, right }: BinaryOp): string {
