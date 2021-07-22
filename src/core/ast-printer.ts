@@ -1,7 +1,7 @@
-import { Expr } from "./ast.ts";
+import * as Ast from "./ast.ts";
 
 export type Print = (
-  expr: Expr | number | string | boolean,
+  expr: Ast.Expr | number | string | boolean,
   depth?: number,
 ) => string;
 export const print: Print = (expr, depth = 0) => {

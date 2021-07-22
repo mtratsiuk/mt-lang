@@ -1,11 +1,5 @@
 import { readLines } from "../lib/bufio.ts";
-
-import { runParser } from "../core/parser-combinators.ts";
-import { mtlang } from "../core/parser.ts";
-import { compile } from "../core/compiler.ts";
-import { print } from "../core/ast-printer.ts";
-import { Expr } from "../core/ast.ts";
-import { State } from "../core/parser-state.ts";
+import { Ast, compile, mtlang, print, runParser, State } from "../core/mod.ts";
 
 const printAstArg = Deno.args.includes("--ast");
 const printStateArg = Deno.args.includes("--state");
@@ -47,7 +41,7 @@ export async function readStdin() {
   return input;
 }
 
-export function printAst(ast: Expr[]) {
+export function printAst(ast: Ast.Expr[]) {
   console.log("///");
   ast.map(print).forEach((x) => console.log(x));
   console.log("///");

@@ -1,6 +1,8 @@
 import { assertEquals } from "../lib/asserts.ts";
 
+import * as Ast from "./ast.ts";
 import { parse, runParser } from "./parser-combinators.ts";
+import { print } from "./ast-printer.ts";
 
 import {
   binary,
@@ -13,33 +15,17 @@ import {
   variableDecl,
 } from "./parser.ts";
 
-import {
-  BinaryOp,
-  BoolLit,
-  Call,
-  Expr,
-  Identifier,
-  NumLit,
-  ParseError,
-  StrLit,
-  UnaryMinusOp,
-  UnaryNotOp,
-  VariableDecl,
-} from "./ast.ts";
-
-import { print } from "./ast-printer.ts";
-
-const expectedQuoteClosingStringErr = new ParseError(
+const expectedQuoteClosingStringErr = new Ast.ParseError(
   'Expected `"` terminating a string',
 );
-const expectedExpressionAfterCallOpeningErr = new ParseError(
+const expectedExpressionAfterCallOpeningErr = new Ast.ParseError(
   "Expected expression after `(`",
 );
-const expectedBracketClosingFunctionCallErr = new ParseError(
+const expectedBracketClosingFunctionCallErr = new Ast.ParseError(
   "Expected `)` closing function call",
 );
 
-export type AssertAst = (left: Expr | null, right: Expr | null) => void;
+export type AssertAst = (left: Ast.Expr | null, right: Ast.Expr | null) => void;
 export const assertAst: AssertAst = (left, right) => {
   if (left === null || right === null) {
     assertEquals(left, right);
@@ -76,39 +62,42 @@ Deno.test("error tracking", () => {
 });
 
 Deno.test("number", () => {
-  assertAst(parse("123", number), new NumLit(123));
+  assertAst(parse("123", number), new Ast.NumLit(123));
   assertAst(parse("", number), null);
 });
 
 Deno.test("string", () => {
-  assertAst(parse('"text"', string), new StrLit("text"));
-  assertAst(parse('""', string), new StrLit(""));
+  assertAst(parse('"text"', string), new Ast.StrLit("text"));
+  assertAst(parse('""', string), new Ast.StrLit(""));
   assertAst(parse('"\n"', string), expectedQuoteClosingStringErr);
   assertAst(parse('"123', string), expectedQuoteClosingStringErr);
   assertAst(parse("123", string), null);
-  assertAst(parse('"25"', string), new StrLit("25"));
-  assertAst(parse('"true"', string), new StrLit("true"));
+  assertAst(parse('"25"', string), new Ast.StrLit("25"));
+  assertAst(parse('"true"', string), new Ast.StrLit("true"));
 });
 
 Deno.test("boolean", () => {
-  assertAst(parse("true", boolean), new BoolLit(true));
-  assertAst(parse("false", boolean), new BoolLit(false));
+  assertAst(parse("true", boolean), new Ast.BoolLit(true));
+  assertAst(parse("false", boolean), new Ast.BoolLit(false));
   assertAst(parse("trflse", boolean), null);
-  assertAst(parse("truefalse", boolean), new BoolLit(true));
+  assertAst(parse("truefalse", boolean), new Ast.BoolLit(true));
 });
 
 Deno.test("unary", () => {
-  assertAst(parse("!true", unary), new UnaryNotOp(new BoolLit(true)));
-  assertAst(parse("-5", unary), new UnaryMinusOp(new NumLit(5)));
+  assertAst(parse("!true", unary), new Ast.UnaryNotOp(new Ast.BoolLit(true)));
+  assertAst(parse("-5", unary), new Ast.UnaryMinusOp(new Ast.NumLit(5)));
   assertAst(
     parse("--5", unary),
-    new UnaryMinusOp(new UnaryMinusOp(new NumLit(5))),
+    new Ast.UnaryMinusOp(new Ast.UnaryMinusOp(new Ast.NumLit(5))),
   );
-  assertAst(parse("15", unary), new NumLit(15));
+  assertAst(parse("15", unary), new Ast.NumLit(15));
   assertAst(
     parse("!(eq 4 4)", unary),
-    new UnaryNotOp(
-      new Call(new Identifier("eq"), [new NumLit(4), new NumLit(4)]),
+    new Ast.UnaryNotOp(
+      new Ast.Call(new Ast.Identifier("eq"), [
+        new Ast.NumLit(4),
+        new Ast.NumLit(4),
+      ]),
     ),
   );
 });
@@ -116,18 +105,18 @@ Deno.test("unary", () => {
 Deno.test("binary", () => {
   assertAst(
     parse("(+ 4 2)", binary),
-    new BinaryOp("+", new NumLit(4), new NumLit(2)),
+    new Ast.BinaryOp("+", new Ast.NumLit(4), new Ast.NumLit(2)),
   );
   assertAst(
     parse("(- 4 2)", binary),
-    new BinaryOp("-", new NumLit(4), new NumLit(2)),
+    new Ast.BinaryOp("-", new Ast.NumLit(4), new Ast.NumLit(2)),
   );
   assertAst(
     parse("(* (+ 2 2) 2)", binary),
-    new BinaryOp(
+    new Ast.BinaryOp(
       "*",
-      new BinaryOp("+", new NumLit(2), new NumLit(2)),
-      new NumLit(2),
+      new Ast.BinaryOp("+", new Ast.NumLit(2), new Ast.NumLit(2)),
+      new Ast.NumLit(2),
     ),
   );
 });
@@ -135,7 +124,10 @@ Deno.test("binary", () => {
 Deno.test("expression", () => {
   assertAst(
     parse("(add 5 7)", expression),
-    new Call(new Identifier("add"), [new NumLit(5), new NumLit(7)]),
+    new Ast.Call(new Ast.Identifier("add"), [
+      new Ast.NumLit(5),
+      new Ast.NumLit(7),
+    ]),
   );
 
   assertAst(
@@ -146,10 +138,10 @@ Deno.test("expression", () => {
           3)`,
       expression,
     ),
-    new Call(new Identifier("add"), [
-      new NumLit(1),
-      new NumLit(2),
-      new NumLit(3),
+    new Ast.Call(new Ast.Identifier("add"), [
+      new Ast.NumLit(1),
+      new Ast.NumLit(2),
+      new Ast.NumLit(3),
     ]),
   );
 });
@@ -157,7 +149,7 @@ Deno.test("expression", () => {
 Deno.test("variable declaration", () => {
   assertAst(
     parse(`(def pi 3)`, variableDecl),
-    new VariableDecl("pi", new NumLit(3)),
+    new Ast.VariableDecl("pi", new Ast.NumLit(3)),
   );
 
   assertAst(
@@ -167,9 +159,12 @@ Deno.test("variable declaration", () => {
          (plus 40 2))`,
       variableDecl,
     ),
-    new VariableDecl(
+    new Ast.VariableDecl(
       "meaning",
-      new Call(new Identifier("plus"), [new NumLit(40), new NumLit(2)]),
+      new Ast.Call(new Ast.Identifier("plus"), [
+        new Ast.NumLit(40),
+        new Ast.NumLit(2),
+      ]),
     ),
   );
 });

@@ -1,4 +1,4 @@
-import { ParseError } from "./ast.ts";
+import * as Ast from "./ast.ts";
 
 export const EOF = "EOF";
 
@@ -6,14 +6,14 @@ type StateProps = {
   source?: string;
   location?: number;
   line?: number;
-  errors?: ParseError[];
+  errors?: Ast.ParseError[];
 };
 
 export class State {
   source: string;
   location: number;
   line: number;
-  errors: ParseError[];
+  errors: Ast.ParseError[];
 
   static from(source: string): State {
     return new State({ source });
@@ -53,7 +53,7 @@ export class State {
     return this;
   }
 
-  error(err: ParseError): State {
+  error(err: Ast.ParseError): State {
     this.errors.push(err);
     return this;
   }

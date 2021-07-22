@@ -1,26 +1,11 @@
 import { pass } from "../utils/mod.ts";
 
-import {
-  BinaryOp,
-  BoolLit,
-  Call,
-  Expr,
-  ExprVisitor,
-  FunctionDecl,
-  Identifier,
-  NumLit,
-  Print,
-  StrLit,
-  UnaryMinusOp,
-  UnaryNotOp,
-  VariableDecl,
-} from "./ast.ts";
-
+import * as Ast from "./ast.ts";
 import { BinaryOps } from "./keywords.ts";
 
 const IDENT = 2;
 
-export type Compile = (value: Expr | Expr[]) => string;
+export type Compile = (value: Ast.Expr | Ast.Expr[]) => string;
 export const compile: Compile = (value) => {
   if (!Array.isArray(value)) {
     value = [value];
@@ -29,60 +14,60 @@ export const compile: Compile = (value) => {
   return value.map(Compiler.compile).join(";\n\n") + ";";
 };
 
-export class Compiler implements ExprVisitor<string> {
+export class Compiler implements Ast.ExprVisitor<string> {
   _depth = 0;
 
-  static compile(value: Expr): string {
+  static compile(value: Ast.Expr): string {
     return value.accept(new Compiler());
   }
 
-  compile = (value: Expr): string => {
+  compile = (value: Ast.Expr): string => {
     return value.accept(this);
   };
 
   visitParseError = pass;
 
-  visitNumLit({ value }: NumLit): string {
+  visitNumLit({ value }: Ast.NumLit): string {
     return String(value);
   }
 
-  visitStrLit({ value }: StrLit): string {
+  visitStrLit({ value }: Ast.StrLit): string {
     return `"${value}"`;
   }
 
-  visitBoolLit({ value }: BoolLit): string {
+  visitBoolLit({ value }: Ast.BoolLit): string {
     return String(value);
   }
 
-  visitIdentifier({ name }: Identifier): string {
+  visitIdentifier({ name }: Ast.Identifier): string {
     return name;
   }
 
-  visitCall({ callee, args }: Call): string {
+  visitCall({ callee, args }: Ast.Call): string {
     return `${this.compile(callee)}(${args.map(this.compile).join(", ")})`;
   }
 
-  visitPrint({ value }: Print): string {
+  visitPrint({ value }: Ast.Print): string {
     return `console.log(String(${this.compile(value)}))`;
   }
 
-  visitBinaryOp({ op, left, right }: BinaryOp): string {
+  visitBinaryOp({ op, left, right }: Ast.BinaryOp): string {
     return `(${this.compile(left)} ${BinaryOps[op]} ${this.compile(right)})`;
   }
 
-  visitUnaryNotOp({ value }: UnaryNotOp): string {
+  visitUnaryNotOp({ value }: Ast.UnaryNotOp): string {
     return `!${this.compile(value)}`;
   }
 
-  visitUnaryMinusOp({ value }: UnaryMinusOp): string {
+  visitUnaryMinusOp({ value }: Ast.UnaryMinusOp): string {
     return `-${this.compile(value)}`;
   }
 
-  visitVariableDecl({ name, value }: VariableDecl): string {
+  visitVariableDecl({ name, value }: Ast.VariableDecl): string {
     return `const ${name} = ${this.compile(value)}`;
   }
 
-  visitFunctionDecl({ name, params, body }: FunctionDecl): string {
+  visitFunctionDecl({ name, params, body }: Ast.FunctionDecl): string {
     return this._withIdent((ident) => {
       return `\
 function ${name}(${params.join(", ")}) {\

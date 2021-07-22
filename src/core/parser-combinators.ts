@@ -1,10 +1,9 @@
+import * as Ast from "./ast.ts";
 import { EOF, State } from "./parser-state.ts";
-
-import { ParseError } from "./ast.ts";
 
 export type Parser<T> = (state: State) => [T | null, State];
 
-export type PT<T> = T extends Parser<(infer K) | ParseError> ? K
+export type PT<T> = T extends Parser<(infer K) | Ast.ParseError> ? K
   : T extends Parser<infer K> ? K
   : never;
 
@@ -32,9 +31,12 @@ export class SeqErrorSignal {
   constructor(public message: string) {}
 }
 export class SeqDeepErrorSignal {
-  constructor(public error: ParseError, public state: State) {}
+  constructor(public error: Ast.ParseError, public state: State) {}
 }
-export type EmitParser = <T>(p: Parser<T | ParseError> | null, e?: string) => T;
+export type EmitParser = <T>(
+  p: Parser<T | Ast.ParseError> | null,
+  e?: string,
+) => T;
 export type GetState = () => State;
 
 export const createEmitParser: (state: State) => [EmitParser, GetState] = (
@@ -49,7 +51,7 @@ export const createEmitParser: (state: State) => [EmitParser, GetState] = (
 
     const [result, newState] = parser(currentState);
 
-    if (result instanceof ParseError) {
+    if (result instanceof Ast.ParseError) {
       throw new SeqDeepErrorSignal(result, newState);
     }
 
@@ -69,7 +71,9 @@ export const createEmitParser: (state: State) => [EmitParser, GetState] = (
   return [emitParser, () => currentState];
 };
 
-export type Seq = <R>(seq: (emit: EmitParser) => R) => Parser<R | ParseError>;
+export type Seq = <R>(
+  seq: (emit: EmitParser) => R,
+) => Parser<R | Ast.ParseError>;
 export const seq: Seq = (sequence) =>
   (state) => {
     const [emit, getState] = createEmitParser(state);
@@ -84,7 +88,7 @@ export const seq: Seq = (sequence) =>
       }
 
       if (signal instanceof SeqErrorSignal) {
-        const err = new ParseError(signal.message);
+        const err = new Ast.ParseError(signal.message);
         return [err, state.clone().error(err).synchronize()];
       }
 
@@ -124,8 +128,8 @@ export const map: Map = (parser, f) =>
   };
 
 export type MapError = <T, K>(
-  parser: Parser<T | ParseError>,
-  mapE: (x: ParseError) => K,
+  parser: Parser<T | Ast.ParseError>,
+  mapE: (x: Ast.ParseError) => K,
   mapV: (x: T) => K,
 ) => Parser<K>;
 export const mapError: MapError = (parser, mapE, mapV) =>
@@ -136,7 +140,7 @@ export const mapError: MapError = (parser, mapE, mapV) =>
       return [null, state];
     }
 
-    if (result instanceof ParseError) {
+    if (result instanceof Ast.ParseError) {
       return [mapE(result), state];
     }
 
