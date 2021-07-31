@@ -7,9 +7,10 @@ export type Print = (
 export const print: Print = (expr, depth = 0) => {
   if (
     typeof expr === "number" ||
-    typeof expr === "boolean"
+    typeof expr === "boolean" ||
+    expr == null
   ) {
-    return expr.toString();
+    return `${expr}`;
   }
 
   if (typeof expr === "string") {

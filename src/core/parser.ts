@@ -1,4 +1,4 @@
-import { cnst } from "../utils/mod.ts";
+import { cnst, id } from "../utils/mod.ts";
 
 import * as P from "./parser-combinators.ts";
 import * as Ast from "./ast.ts";
@@ -137,9 +137,66 @@ export const functionDecl = P.seq((emit) => {
   return new Ast.FunctionDecl(id.name, params, new Ast.Block(body));
 });
 
+export const cond = P.seq((emit) => {
+  emit(P.char("("));
+  emit(P.chars(Keywords.CONDITION));
+  emit(skip);
+
+  const branches = emit(
+    P.oneOrMore(
+      P.mapError(
+        P.seq((emit) => {
+          emit(skip);
+          emit(P.char("("));
+
+          const condition = emit(expression);
+
+          const body = emit(
+            P.oneOrMore(statement),
+            "Expected a statement inside branch body",
+          );
+
+          emit(P.char(")"), "Expected `)` closing branch");
+
+          return { condition, body: new Ast.Block(body) };
+        }),
+        (error) => ({ condition: error, body: new Ast.Block([]) }),
+        id,
+      ),
+    ),
+  );
+
+  const elseBody = emit(
+    P.optional(
+      P.mapError(
+        P.seq((emit) => {
+          emit(skip);
+          emit(P.char("("));
+          emit(P.chars(Keywords.ELSE));
+
+          const body = emit(
+            P.oneOrMore(statement),
+            "Expected a statement inside else body",
+          );
+
+          emit(P.char(")"), "Expected `)` closing else branch");
+
+          return new Ast.Block(body);
+        }),
+        cnst(new Ast.Block([])),
+        id,
+      ),
+    ),
+  );
+
+  emit(P.char(")"), "Expected `)` closing cond expression");
+
+  return new Ast.Cond(branches, elseBody);
+});
+
 export const primary = P.or(
   number,
-  P.or(string, P.or(boolean, P.or(identifier, P.or(binary, call)))),
+  P.or(string, P.or(boolean, P.or(identifier, P.or(cond, P.or(binary, call))))),
 );
 
 export const unary: P.Parser<Ast.Expr> = P.or(

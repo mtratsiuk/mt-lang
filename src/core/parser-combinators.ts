@@ -141,7 +141,7 @@ export const mapError: MapError = (parser, mapE, mapV) =>
     }
 
     if (result instanceof Ast.ParseError) {
-      return [mapE(result), state];
+      return [mapE(result), newState];
     }
 
     return [mapV(result), newState];
@@ -205,6 +205,18 @@ export const or: Or = (left, right) =>
     }
 
     return right(state);
+  };
+
+export type Optional = <T>(parser: Parser<T>) => Parser<T | undefined>;
+export const optional: Optional = (parser) =>
+  (state) => {
+    const [result, newState] = parser(state);
+
+    if (result === null) {
+      return [undefined, newState];
+    }
+
+    return [result, newState];
   };
 
 export const regexp = createParser((p: RegExp, c) => c !== EOF && p.test(c));

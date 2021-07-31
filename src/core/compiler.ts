@@ -67,25 +67,42 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return `const ${name} = ${this.compile(value)}`;
   }
 
-  visitBlock({ body }: Ast.Block): string {
-    return this._withIdent((ident) => {
-      return `\
-{\
-${body.slice(0, -1).map((expr) => `${ident}${this.compile(expr)};`).join("")}\
-${body.slice(-1).map((expr) => `${ident}return ${this.compile(expr)};`)}\
-\n}`;
-    });
-  }
-
   visitFunctionDecl({ name, params, body }: Ast.FunctionDecl): string {
     return `function ${name}(${params.join(", ")}) ${this.compile(body)}`;
   }
 
-  _withIdent(compile: (ident: string) => string): string {
+  visitCond({ branches, elseBody }: Ast.Cond): string {
+    const [first, ...rest] = branches;
+
+    // deno-fmt-ignore
+    return this._withIdent((ident, prevIdent) => {
+      return `\
+(() => {\
+${ident}if (${this.compile(first.condition)}) ${this.compile(first.body)}\
+${rest.map((branch) => ` else if (${this.compile(branch.condition)}) ${this.compile(branch.body)}`).join("")}\
+${!elseBody ? "" : ` else ${this.compile(elseBody)}`}\
+${prevIdent}})()`;
+    });
+  }
+
+  visitBlock({ body }: Ast.Block): string {
+    return this._withIdent((ident, prevIdent) => {
+      return `\
+{\
+${body.slice(0, -1).map((expr) => `${ident}${this.compile(expr)};`).join("")}\
+${body.slice(-1).map((expr) => `${ident}return ${this.compile(expr)};`)}\
+${prevIdent}}`;
+    });
+  }
+
+  _withIdent(compile: (ident: string, prevIdent: string) => string): string {
     try {
       this._depth += 1;
 
-      return compile("\n" + " ".repeat(IDENT * this._depth));
+      return compile(
+        "\n" + " ".repeat(IDENT * this._depth),
+        "\n" + " ".repeat(IDENT * Math.max(this._depth - 1, 0)),
+      );
     } finally {
       this._depth -= 1;
     }

@@ -25,4 +25,15 @@
 
 (def (mult a b)
   (* a b))
+
+
+;; Conditional evaluation
+
+(cond
+  ((> 4 5)
+    (print "1"))
+  ((and true false)
+    (print "2"))
+  (else
+    (print "3")))
 ```

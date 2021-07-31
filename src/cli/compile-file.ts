@@ -19,8 +19,6 @@ if (!ast || state.errors.length !== 0) {
   Deno.exit(1);
 }
 
-const result = compile(ast);
-
 if (printAstArg) {
   printAst(ast);
 }
@@ -28,6 +26,8 @@ if (printAstArg) {
 if (printStateArg) {
   printState(state);
 }
+
+const result = compile(ast);
 
 await Deno.stdout.write(new TextEncoder().encode(result));
 

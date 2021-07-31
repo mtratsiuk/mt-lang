@@ -3,6 +3,8 @@ export const Keywords = {
   AND: "and",
   OR: "or",
   PRINT: "print",
+  CONDITION: "cond",
+  ELSE: "else",
 };
 
 const keywords = new Set(Object.values(Keywords));

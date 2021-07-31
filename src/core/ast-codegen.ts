@@ -1,9 +1,10 @@
 enum T {
-  Expr = "Expr",
-  Block = "Block",
   String = "string",
   Number = "number",
   Boolean = "boolean",
+  Expr = "Expr",
+  Block = "Block",
+  Branch = "{ condition: Expr, body: Block }",
 }
 
 type ArrayType = (t: T) => `${typeof t}[]`;
@@ -94,6 +95,11 @@ defineExpr(
   ["params", arrayType(T.String)],
   ["body", T.Block],
 );
+
+defineExpr("Cond", ["branches", arrayType(T.Branch)], [
+  "elseBody?",
+  T.Block,
+]);
 
 function main() {
   Deno.writeTextFileSync(Deno.args[0], generateAst(ast));

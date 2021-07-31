@@ -1,0 +1,10 @@
+(def (createPoint x y)
+  (def (point prop)
+    (cond
+      ((= prop "x") x)
+      ((= prop "y") y))))
+
+(def point (createPoint 10 20))
+
+(print (point "x"))
+(print (point "y"))
