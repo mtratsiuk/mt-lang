@@ -6,20 +6,30 @@ export type Print = (
 ) => string;
 export const print: Print = (expr, depth = 0) => {
   if (
-    typeof expr === "string" || typeof expr === "number" ||
+    typeof expr === "number" ||
     typeof expr === "boolean"
   ) {
     return expr.toString();
   }
 
-  const offest = " ".repeat(depth * 2);
+  if (typeof expr === "string") {
+    return `"${expr}"`;
+  }
+
+  const offset = " ".repeat(depth * 2);
+
+  if (Array.isArray(expr)) {
+    return `[
+${expr.map((value) => `  ${offset}${print(value, depth + 1)}`).join(",\n")}
+${offset}]`;
+  }
 
   return `${expr.constructor.name} {
 ${
     Object.getOwnPropertyNames(expr).map((key) =>
       // deno-lint-ignore no-explicit-any
-      `  ${offest}${key}: ${print((expr as any)[key], depth + 1)}`
+      `  ${offset}${key}: ${print((expr as any)[key], depth + 1)}`
     ).join("\n")
   }
-${offest}}`;
+${offset}}`;
 };
