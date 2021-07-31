@@ -1,5 +1,6 @@
 enum T {
   Expr = "Expr",
+  Block = "Block",
   String = "string",
   Number = "number",
   Boolean = "boolean",
@@ -85,11 +86,13 @@ defineExpr("VariableDecl", ["name", T.String], ["value", T.Expr]);
 
 defineExpr("Print", ["value", T.Expr]);
 
+defineExpr("Block", ["body", arrayType(T.Expr)]);
+
 defineExpr(
   "FunctionDecl",
   ["name", T.String],
   ["params", arrayType(T.String)],
-  ["body", arrayType(T.Expr)],
+  ["body", T.Block],
 );
 
 function main() {

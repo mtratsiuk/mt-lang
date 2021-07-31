@@ -67,14 +67,18 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return `const ${name} = ${this.compile(value)}`;
   }
 
-  visitFunctionDecl({ name, params, body }: Ast.FunctionDecl): string {
+  visitBlock({ body }: Ast.Block): string {
     return this._withIdent((ident) => {
       return `\
-function ${name}(${params.join(", ")}) {\
+{\
 ${body.slice(0, -1).map((expr) => `${ident}${this.compile(expr)};`).join("")}\
 ${body.slice(-1).map((expr) => `${ident}return ${this.compile(expr)};`)}\
 \n}`;
     });
+  }
+
+  visitFunctionDecl({ name, params, body }: Ast.FunctionDecl): string {
+    return `function ${name}(${params.join(", ")}) ${this.compile(body)}`;
   }
 
   _withIdent(compile: (ident: string) => string): string {

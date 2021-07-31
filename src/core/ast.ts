@@ -12,6 +12,7 @@ export type ExprVisitor<T> = {
   visitParseError(value: ParseError): T;
   visitVariableDecl(value: VariableDecl): T;
   visitPrint(value: Print): T;
+  visitBlock(value: Block): T;
   visitFunctionDecl(value: FunctionDecl): T;
 };
 
@@ -131,11 +132,21 @@ export class Print extends Expr {
   }
 }
 
+export class Block extends Expr {
+  constructor(public body: Expr[]) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitBlock(this);
+  }
+}
+
 export class FunctionDecl extends Expr {
   constructor(
     public name: string,
     public params: string[],
-    public body: Expr[],
+    public body: Block,
   ) {
     super();
   }

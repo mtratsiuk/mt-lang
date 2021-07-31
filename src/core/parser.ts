@@ -134,7 +134,7 @@ export const functionDecl = P.seq((emit) => {
   const body = emit(P.oneOrMore(statement), "Expected a statement");
   emit(P.char(")"), "Expected `)` closing function declaration");
 
-  return new Ast.FunctionDecl(id.name, params, body);
+  return new Ast.FunctionDecl(id.name, params, new Ast.Block(body));
 });
 
 export const primary = P.or(
