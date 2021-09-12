@@ -48,6 +48,8 @@ export const boolean = P.or(
   P.map(P.chars("false"), cnst(new Ast.BoolLit(false))),
 );
 
+export const nil = P.map(P.chars(Keywords.NIL), cnst(new Ast.NilLit()));
+
 export const binaryOpsP = binaryOps.map(P.chars).reduce(P.or);
 
 export const binary = P.seq((emit) => {
@@ -195,8 +197,14 @@ export const cond = P.seq((emit) => {
 });
 
 export const primary = P.or(
-  number,
-  P.or(string, P.or(boolean, P.or(identifier, P.or(cond, P.or(binary, call))))),
+  nil,
+  P.or(
+    number,
+    P.or(
+      string,
+      P.or(boolean, P.or(identifier, P.or(cond, P.or(binary, call)))),
+    ),
+  ),
 );
 
 export const unary: P.Parser<Ast.Expr> = P.or(

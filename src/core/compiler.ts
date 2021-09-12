@@ -39,6 +39,10 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return String(value);
   }
 
+  visitNilLit(): string {
+    return "null";
+  }
+
   visitIdentifier({ name }: Ast.Identifier): string {
     return name;
   }

@@ -5,6 +5,7 @@ export const Keywords = {
   PRINT: "print",
   CONDITION: "cond",
   ELSE: "else",
+  NIL: "nil",
 };
 
 const keywords = new Set(Object.values(Keywords));

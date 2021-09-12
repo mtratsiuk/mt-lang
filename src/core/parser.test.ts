@@ -9,6 +9,7 @@ import {
   boolean,
   expression,
   mtlang,
+  nil,
   number,
   string,
   unary,
@@ -81,6 +82,10 @@ Deno.test("boolean", () => {
   assertAst(parse("false", boolean), new Ast.BoolLit(false));
   assertAst(parse("trflse", boolean), null);
   assertAst(parse("truefalse", boolean), new Ast.BoolLit(true));
+});
+
+Deno.test("nil", () => {
+  assertAst(parse("nil", nil), new Ast.NilLit());
 });
 
 Deno.test("unary", () => {

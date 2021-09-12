@@ -32,6 +32,7 @@ function mult(a, b) {
   return myMult(a, b);
 };`,
     ],
+    ["(def value nil)", "const value = null;"],
   ];
 
   for (const [mtInput, expected] of tests) {

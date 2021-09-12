@@ -71,6 +71,7 @@ const defineLitExpr = (name: string, type: T) =>
 defineLitExpr("NumLit", T.Number);
 defineLitExpr("StrLit", T.String);
 defineLitExpr("BoolLit", T.Boolean);
+defineExpr("NilLit");
 
 defineExpr("Identifier", ["name", T.String]);
 

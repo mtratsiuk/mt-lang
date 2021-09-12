@@ -4,6 +4,7 @@ export type ExprVisitor<T> = {
   visitNumLit(value: NumLit): T;
   visitStrLit(value: StrLit): T;
   visitBoolLit(value: BoolLit): T;
+  visitNilLit(value: NilLit): T;
   visitIdentifier(value: Identifier): T;
   visitCall(value: Call): T;
   visitBinaryOp(value: BinaryOp): T;
@@ -50,6 +51,16 @@ export class BoolLit extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitBoolLit(this);
+  }
+}
+
+export class NilLit extends Expr {
+  constructor() {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitNilLit(this);
   }
 }
 
