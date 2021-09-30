@@ -72,6 +72,7 @@ defineLitExpr("NumLit", T.Number);
 defineLitExpr("StrLit", T.String);
 defineLitExpr("BoolLit", T.Boolean);
 defineExpr("NilLit");
+defineExpr("ArrayLit", ["items", arrayType(T.Expr)]);
 
 defineExpr("Identifier", ["name", T.String]);
 

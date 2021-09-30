@@ -43,6 +43,10 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return "null";
   }
 
+  visitArrayLit({ items }: Ast.ArrayLit): string {
+    return `[${items.map(this.compile).join(", ")}]`;
+  }
+
   visitIdentifier({ name }: Ast.Identifier): string {
     return name;
   }

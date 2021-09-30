@@ -1,0 +1,12 @@
+(def (printArray arr)
+  (print arr))
+
+(def (printSomeArray)
+  (print [1 2 3]))
+
+(printArray [
+  "one"
+  2
+  3])
+
+(printSomeArray)

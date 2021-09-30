@@ -27,6 +27,11 @@
   (* a b))
 
 
+;; Array declaration
+
+(def array [1 2 3])
+
+
 ;; Conditional evaluation
 
 (cond

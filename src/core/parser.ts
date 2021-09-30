@@ -88,6 +88,7 @@ export const call = P.seq((emit) => {
 export const print = P.seq((emit) => {
   emit(P.char("("));
   emit(P.chars(Keywords.PRINT));
+  emit(whitespace);
   emit(skip);
 
   const value = emit(expression, "Expected expression to print");
@@ -196,16 +197,36 @@ export const cond = P.seq((emit) => {
   return new Ast.Cond(branches, elseBody);
 });
 
-export const primary = P.or(
-  nil,
-  P.or(
-    number,
-    P.or(
-      string,
-      P.or(boolean, P.or(identifier, P.or(cond, P.or(binary, call)))),
+export const array = P.seq((emit) => {
+  emit(P.char("["));
+  emit(skip);
+
+  const items = emit(
+    P.many(
+      P.seq((emit) => {
+        emit(skip);
+        return emit(expression);
+      }),
     ),
-  ),
-);
+  );
+
+  emit(skip);
+  emit(P.char("]"), "Expected `]` closing array literal");
+
+  return new Ast.ArrayLit(items);
+});
+
+export const primary = [
+  nil,
+  number,
+  string,
+  boolean,
+  array,
+  identifier,
+  cond,
+  binary,
+  call,
+].reduce(P.or);
 
 export const unary: P.Parser<Ast.Expr> = P.or(
   P.seq((emit) => {
