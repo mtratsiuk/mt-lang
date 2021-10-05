@@ -89,16 +89,17 @@ Deno.test("nil", () => {
 });
 
 Deno.test("unary", () => {
-  assertAst(parse("!true", unary), new Ast.UnaryNotOp(new Ast.BoolLit(true)));
-  assertAst(parse("-5", unary), new Ast.UnaryMinusOp(new Ast.NumLit(5)));
+  assertAst(parse("!true", unary), new Ast.UnaryOp("!", new Ast.BoolLit(true)));
+  assertAst(parse("-5", unary), new Ast.UnaryOp("-", new Ast.NumLit(5)));
   assertAst(
     parse("--5", unary),
-    new Ast.UnaryMinusOp(new Ast.UnaryMinusOp(new Ast.NumLit(5))),
+    new Ast.UnaryOp("-", new Ast.UnaryOp("-", new Ast.NumLit(5))),
   );
   assertAst(parse("15", unary), new Ast.NumLit(15));
   assertAst(
     parse("!(eq 4 4)", unary),
-    new Ast.UnaryNotOp(
+    new Ast.UnaryOp(
+      "!",
       new Ast.Call(new Ast.Identifier("eq"), [
         new Ast.NumLit(4),
         new Ast.NumLit(4),

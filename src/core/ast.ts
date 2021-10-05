@@ -9,8 +9,7 @@ export type ExprVisitor<T> = {
   visitIdentifier(value: Identifier): T;
   visitCall(value: Call): T;
   visitBinaryOp(value: BinaryOp): T;
-  visitUnaryNotOp(value: UnaryNotOp): T;
-  visitUnaryMinusOp(value: UnaryMinusOp): T;
+  visitUnaryOp(value: UnaryOp): T;
   visitParseError(value: ParseError): T;
   visitVariableDecl(value: VariableDecl): T;
   visitPrint(value: Print): T;
@@ -105,23 +104,13 @@ export class BinaryOp extends Expr {
   }
 }
 
-export class UnaryNotOp extends Expr {
-  constructor(public value: Expr) {
+export class UnaryOp extends Expr {
+  constructor(public op: string, public value: Expr) {
     super();
   }
 
   accept<T>(visitor: ExprVisitor<T>): T {
-    return visitor.visitUnaryNotOp(this);
-  }
-}
-
-export class UnaryMinusOp extends Expr {
-  constructor(public value: Expr) {
-    super();
-  }
-
-  accept<T>(visitor: ExprVisitor<T>): T {
-    return visitor.visitUnaryMinusOp(this);
+    return visitor.visitUnaryOp(this);
   }
 }
 

@@ -2,7 +2,7 @@ import { cnst, id } from "../utils/mod.ts";
 
 import * as P from "./parser-combinators.ts";
 import * as Ast from "./ast.ts";
-import { binaryOps, isKeyword, Keywords } from "./keywords.ts";
+import { binaryOps, isKeyword, Keywords, unaryOps } from "./keywords.ts";
 import { EOF } from "./parser-state.ts";
 
 export const eof = P.createParser((_: void, c) => c === EOF)(void 0);
@@ -228,15 +228,14 @@ export const primary = [
   call,
 ].reduce(P.or);
 
+export const unaryOpsP = unaryOps.map(P.chars).reduce(P.or);
+
 export const unary: P.Parser<Ast.Expr> = P.or(
   P.seq((emit) => {
-    const not = P.map(P.char("!"), cnst(Ast.UnaryNotOp));
-    const minus = P.map(P.char("-"), cnst(Ast.UnaryMinusOp));
-
-    const Op = emit(P.or(not, minus));
+    const op = emit(unaryOpsP);
     const expr = emit(unary);
 
-    return new Op(expr);
+    return new Ast.UnaryOp(op, expr);
   }),
   primary,
 );

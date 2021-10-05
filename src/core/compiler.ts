@@ -1,7 +1,7 @@
 import { pass } from "../utils/mod.ts";
 
 import * as Ast from "./ast.ts";
-import { BinaryOps } from "./keywords.ts";
+import { BinaryOps, UnaryOps } from "./keywords.ts";
 
 const IDENT = 2;
 
@@ -59,16 +59,12 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return `console.log(String(${this.compile(value)}))`;
   }
 
+  visitUnaryOp({ op, value }: Ast.UnaryOp): string {
+    return `${UnaryOps[op]}${this.compile(value)}`;
+  }
+
   visitBinaryOp({ op, left, right }: Ast.BinaryOp): string {
     return `(${this.compile(left)} ${BinaryOps[op]} ${this.compile(right)})`;
-  }
-
-  visitUnaryNotOp({ value }: Ast.UnaryNotOp): string {
-    return `!${this.compile(value)}`;
-  }
-
-  visitUnaryMinusOp({ value }: Ast.UnaryMinusOp): string {
-    return `-${this.compile(value)}`;
   }
 
   visitVariableDecl({ name, value }: Ast.VariableDecl): string {

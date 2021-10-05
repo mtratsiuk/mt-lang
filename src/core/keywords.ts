@@ -13,7 +13,7 @@ const keywords = new Set(Object.values(Keywords));
 export type IsKeyword = (s: string) => boolean;
 export const isKeyword: IsKeyword = (s) => keywords.has(s);
 
-export const BinaryOps = {
+export const BinaryOps: Record<string, string> = {
   "+": "+",
   "-": "-",
   "*": "*",
@@ -26,8 +26,19 @@ export const BinaryOps = {
   "<": "<",
   ">=": ">=",
   ">": ">",
+  "<<": "<<",
+  ">>": ">>",
+  ">>>": ">>>",
   [Keywords.OR]: "||",
   [Keywords.AND]: "&&",
 };
 
 export const binaryOps = Object.keys(BinaryOps);
+
+export const UnaryOps: Record<string, string> = {
+  "!": "!",
+  "-": "-",
+  "~": "~",
+};
+
+export const unaryOps = Object.keys(UnaryOps);
