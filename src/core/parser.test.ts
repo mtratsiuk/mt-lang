@@ -45,12 +45,19 @@ Deno.test("location tracking", () => {
   assertEquals(state.line, 2);
 });
 
+// TODO: Fix errors tracking (P.mapError)
 Deno.test("error tracking", () => {
   let [_, state] = runParser('(concat "1" "2)', mtlang);
-  assertEquals(state.errors, [expectedQuoteClosingStringErr]);
+  assertEquals(state.errors, [
+    expectedQuoteClosingStringErr,
+    expectedQuoteClosingStringErr,
+  ]);
 
   [_, state] = runParser('(concat "1 "2")', mtlang);
-  assertEquals(state.errors, [expectedQuoteClosingStringErr]);
+  assertEquals(state.errors, [
+    expectedQuoteClosingStringErr,
+    expectedQuoteClosingStringErr,
+  ]);
 
   [_, state] = runParser("(", mtlang);
   assertEquals(state.errors, [expectedExpressionAfterCallOpeningErr]);

@@ -34,6 +34,11 @@ function mult(a, b) {
     ],
     ["(def value nil)", "const value = null;"],
     ["(def arr [1 true nil])", "const arr = [1, true, null];"],
+    ["[1 2 3]/0", "[1, 2, 3][0];"],
+    ['[1 2 3]/"0"', '[1, 2, 3]["0"];'],
+    ["Date/now", "Date.now;"],
+    ["(Date/now)", "Date.now();"],
+    ["(([1 2 3]/slice 0 2)/join)", "[1, 2, 3].slice(0, 2).join();"],
   ];
 
   for (const [mtInput, expected] of tests) {

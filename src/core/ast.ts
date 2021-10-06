@@ -10,6 +10,7 @@ export type ExprVisitor<T> = {
   visitCall(value: Call): T;
   visitBinaryOp(value: BinaryOp): T;
   visitUnaryOp(value: UnaryOp): T;
+  visitMember(value: Member): T;
   visitParseError(value: ParseError): T;
   visitVariableDecl(value: VariableDecl): T;
   visitPrint(value: Print): T;
@@ -111,6 +112,16 @@ export class UnaryOp extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitUnaryOp(this);
+  }
+}
+
+export class Member extends Expr {
+  constructor(public target: Expr, public key: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitMember(this);
   }
 }
 

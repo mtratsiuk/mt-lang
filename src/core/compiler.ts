@@ -75,6 +75,15 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return `function ${name}(${params.join(", ")}) ${this.compile(body)}`;
   }
 
+  visitMember({ target, key }: Ast.Member): string {
+    const keyString = this.compile(key);
+    const accessor = key instanceof Ast.Identifier
+      ? `.${keyString}`
+      : `[${keyString}]`;
+
+    return `${this.compile(target)}${accessor}`;
+  }
+
   visitCond({ branches, elseBody }: Ast.Cond): string {
     const [first, ...rest] = branches;
 

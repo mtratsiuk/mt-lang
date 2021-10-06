@@ -216,7 +216,7 @@ export const array = P.seq((emit) => {
   return new Ast.ArrayLit(items);
 });
 
-export const primary = [
+export const primary: P.Parser<Ast.Expr> = [
   nil,
   number,
   string,
@@ -228,6 +228,28 @@ export const primary = [
   call,
 ].reduce(P.or);
 
+export const memberRec: P.Parser<Ast.Expr[] | Ast.ParseError> = P.or(
+  P.seq((emit) => {
+    const target = emit(primary);
+    emit(skip);
+    emit(P.char("/"));
+    emit(skip);
+    const next = emit(memberRec);
+
+    return [target, ...next];
+  }),
+  P.map(primary, (x) => [x]),
+);
+
+export const member = P.mapError(
+  memberRec,
+  id,
+  (parts) =>
+    parts.length === 1
+      ? parts[0]
+      : parts.reduce((member, part) => new Ast.Member(member, part)),
+);
+
 export const unaryOpsP = unaryOps.map(P.chars).reduce(P.or);
 
 export const unary: P.Parser<Ast.Expr> = P.or(
@@ -237,7 +259,7 @@ export const unary: P.Parser<Ast.Expr> = P.or(
 
     return new Ast.UnaryOp(op, expr);
   }),
-  primary,
+  member,
 );
 
 export const expression = unary;

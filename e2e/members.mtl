@@ -1,0 +1,11 @@
+(def (square x)
+  (* x x))
+
+(print
+  [1 2 42]/2)
+
+(print
+  ((([2 nil 4 6]
+    /filter Boolean)
+    /map square)
+    /join "|"))

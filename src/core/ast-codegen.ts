@@ -81,6 +81,8 @@ defineExpr("Call", ["callee", T.Expr], ["args", arrayType(T.Expr)]);
 defineExpr("BinaryOp", ["op", T.String], ["left", T.Expr], ["right", T.Expr]);
 defineExpr("UnaryOp", ["op", T.String], ["value", T.Expr]);
 
+defineExpr("Member", ["target", T.Expr], ["key", T.Expr]);
+
 defineExpr("ParseError", ["message", T.String]);
 
 defineExpr("VariableDecl", ["name", T.String], ["value", T.Expr]);
