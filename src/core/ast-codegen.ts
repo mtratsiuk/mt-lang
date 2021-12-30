@@ -83,7 +83,10 @@ defineExpr("UnaryOp", ["op", T.String], ["value", T.Expr]);
 
 defineExpr("Member", ["target", T.Expr], ["key", T.Expr]);
 
-defineExpr("ParseError", ["message", T.String]);
+defineExpr("ParseError", ["message", T.String], ["line", T.Number], [
+  "start",
+  T.Number,
+], ["end", T.Number]);
 
 defineExpr("VariableDecl", ["name", T.String], ["value", T.Expr]);
 

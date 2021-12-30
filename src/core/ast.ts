@@ -126,7 +126,12 @@ export class Member extends Expr {
 }
 
 export class ParseError extends Expr {
-  constructor(public message: string) {
+  constructor(
+    public message: string,
+    public line: number,
+    public start: number,
+    public end: number,
+  ) {
     super();
   }
 

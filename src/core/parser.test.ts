@@ -16,15 +16,10 @@ import {
   variableDecl,
 } from "./parser.ts";
 
-const expectedQuoteClosingStringErr = new Ast.ParseError(
-  'Expected `"` terminating a string',
-);
-const expectedExpressionAfterCallOpeningErr = new Ast.ParseError(
-  "Expected expression after `(`",
-);
-const expectedBracketClosingFunctionCallErr = new Ast.ParseError(
-  "Expected `)` closing function call",
-);
+const expectedQuoteClosingStringErr = 'Expected `"` terminating a string';
+const expectedExpressionAfterCallOpeningErr = "Expected expression after `(`";
+const expectedBracketClosingFunctionCallErr =
+  "Expected `)` closing function call";
 
 export type AssertAst = (left: Ast.Expr | null, right: Ast.Expr | null) => void;
 export const assertAst: AssertAst = (left, right) => {
@@ -45,28 +40,31 @@ Deno.test("location tracking", () => {
   assertEquals(state.line, 2);
 });
 
-// TODO: Fix errors tracking (P.mapError)
 Deno.test("error tracking", () => {
   let [_, state] = runParser('(concat "1" "2)', mtlang);
   assertEquals(state.errors, [
-    expectedQuoteClosingStringErr,
-    expectedQuoteClosingStringErr,
+    new Ast.ParseError(expectedQuoteClosingStringErr, 0, 12, 15),
   ]);
 
   [_, state] = runParser('(concat "1 "2")', mtlang);
   assertEquals(state.errors, [
-    expectedQuoteClosingStringErr,
-    expectedQuoteClosingStringErr,
+    new Ast.ParseError(expectedQuoteClosingStringErr, 0, 13, 15),
   ]);
 
   [_, state] = runParser("(", mtlang);
-  assertEquals(state.errors, [expectedExpressionAfterCallOpeningErr]);
+  assertEquals(state.errors, [
+    new Ast.ParseError(expectedExpressionAfterCallOpeningErr, 0, 0, 1),
+  ]);
 
   [_, state] = runParser("(plus", mtlang);
-  assertEquals(state.errors, [expectedBracketClosingFunctionCallErr]);
+  assertEquals(state.errors, [
+    new Ast.ParseError(expectedBracketClosingFunctionCallErr, 0, 0, 5),
+  ]);
 
   [_, state] = runParser("(plus 2 3", mtlang);
-  assertEquals(state.errors, [expectedBracketClosingFunctionCallErr]);
+  assertEquals(state.errors, [
+    new Ast.ParseError(expectedBracketClosingFunctionCallErr, 0, 0, 9),
+  ]);
 });
 
 Deno.test("number", () => {
@@ -77,8 +75,6 @@ Deno.test("number", () => {
 Deno.test("string", () => {
   assertAst(parse('"text"', string), new Ast.StrLit("text"));
   assertAst(parse('""', string), new Ast.StrLit(""));
-  assertAst(parse('"\n"', string), expectedQuoteClosingStringErr);
-  assertAst(parse('"123', string), expectedQuoteClosingStringErr);
   assertAst(parse("123", string), null);
   assertAst(parse('"25"', string), new Ast.StrLit("25"));
   assertAst(parse('"true"', string), new Ast.StrLit("true"));

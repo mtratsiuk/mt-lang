@@ -1,5 +1,9 @@
+import { id } from "../utils/mod.ts";
 import * as Ast from "./ast.ts";
 import { EOF, State } from "./parser-state.ts";
+
+const DEBUG = Deno.args.includes("--debug");
+const TAP_LOOKAHEAD = 20;
 
 export type Parser<T> = (state: State) => [T | null, State];
 
@@ -28,7 +32,12 @@ export const parse: Parse = (source, parser) => {
 
 export class SeqBreakSignal {}
 export class SeqErrorSignal {
-  constructor(public message: string) {}
+  constructor(
+    public message: string,
+    public line: number,
+    public start: number,
+    public end: number,
+  ) {}
 }
 export class SeqDeepErrorSignal {
   constructor(public error: Ast.ParseError, public state: State) {}
@@ -42,6 +51,7 @@ export type GetState = () => State;
 export const createEmitParser: (state: State) => [EmitParser, GetState] = (
   state,
 ) => {
+  const startPosition = state.locationInLine;
   let currentState = state;
 
   const emitParser: EmitParser = (parser, error) => {
@@ -57,7 +67,12 @@ export const createEmitParser: (state: State) => [EmitParser, GetState] = (
 
     if (result === null) {
       if (error) {
-        throw new SeqErrorSignal(error);
+        throw new SeqErrorSignal(
+          error,
+          currentState.line,
+          startPosition,
+          currentState.locationInLine,
+        );
       }
 
       throw new SeqBreakSignal();
@@ -88,7 +103,12 @@ export const seq: Seq = (sequence) =>
       }
 
       if (signal instanceof SeqErrorSignal) {
-        const err = new Ast.ParseError(signal.message);
+        const err = new Ast.ParseError(
+          signal.message,
+          signal.line,
+          signal.start,
+          signal.end,
+        );
         return [err, state.clone().error(err).synchronize()];
       }
 
@@ -225,3 +245,33 @@ export const char = createParser((p: string, c) => c !== EOF && p === c);
 
 export const chars = (cs: string) =>
   seq((emit) => cs.split("").reduce((r, c) => r + emit(char(c)), ""));
+
+let ident = -1;
+
+export type Tap = (name: string) => <T>(parser: Parser<T>) => Parser<T>;
+export const tap: Tap = (name) =>
+  !DEBUG ? id : (parser) =>
+    (state) => {
+      const incomingChars = state.source.slice(
+        state.location,
+        state.location + TAP_LOOKAHEAD,
+      );
+
+      try {
+        ident += 1;
+
+        console.log(
+          `${
+            " ".repeat(ident)
+          }[${ident}][l: ${state.line}, p: ${state.locationInLine}]: ${name} <~~ ${incomingChars}`,
+        );
+
+        const [result, nextState] = parser(state);
+
+        console.log(`${" ".repeat(ident)}[${ident}] > `, result);
+
+        return [result, nextState];
+      } finally {
+        ident -= 1;
+      }
+    };

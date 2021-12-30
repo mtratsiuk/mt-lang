@@ -19,7 +19,7 @@ export const alphaNumeric = P.or(numeric, alpha);
 
 export const def = P.chars(Keywords.DEFINE);
 
-export const identifier = P.seq((emit) => {
+export const identifier = P.tap("identifier")(P.seq((emit) => {
   const name = emit(
     P.oneOrMore(P.or(alphaNumeric, P.char("_"))),
   ).join("");
@@ -29,30 +29,32 @@ export const identifier = P.seq((emit) => {
   }
 
   return new Ast.Identifier(name);
-});
+}));
 
-export const number = P.map(
+export const number = P.tap("number")(P.map(
   P.oneOrMore(P.regexp(/[0-9]/)),
   (chars) => new Ast.NumLit(+chars.join("")),
-);
+));
 
-export const string = P.seq((emit) => {
+export const string = P.tap("string")(P.seq((emit) => {
   emit(P.char('"'));
   const chars = emit(P.many(P.regexp(/[^"\n]/)));
   emit(P.char('"'), 'Expected `"` terminating a string');
   return new Ast.StrLit(chars.join(""));
-});
+}));
 
-export const boolean = P.or(
+export const boolean = P.tap("boolean")(P.or(
   P.map(P.chars("true"), cnst(new Ast.BoolLit(true))),
   P.map(P.chars("false"), cnst(new Ast.BoolLit(false))),
-);
+));
 
-export const nil = P.map(P.chars(Keywords.NIL), cnst(new Ast.NilLit()));
+export const nil = P.tap("nil")(
+  P.map(P.chars(Keywords.NIL), cnst(new Ast.NilLit())),
+);
 
 export const binaryOpsP = binaryOps.map(P.chars).reduce(P.or);
 
-export const binary = P.seq((emit) => {
+export const binary = P.tap("binary")(P.seq((emit) => {
   emit(P.char("("));
 
   const op = emit(binaryOpsP);
@@ -64,9 +66,9 @@ export const binary = P.seq((emit) => {
   emit(P.char(")"), "Expected `)` closing binary operation call");
 
   return new Ast.BinaryOp(op, left, right);
-});
+}));
 
-export const call = P.seq((emit) => {
+export const call = P.tap("call")(P.seq((emit) => {
   emit(P.char("("));
 
   const callee = emit(expression, "Expected expression after `(`");
@@ -83,9 +85,9 @@ export const call = P.seq((emit) => {
   emit(P.char(")"), "Expected `)` closing function call");
 
   return new Ast.Call(callee, args);
-});
+}));
 
-export const print = P.seq((emit) => {
+export const print = P.tap("print")(P.seq((emit) => {
   emit(P.char("("));
   emit(P.chars(Keywords.PRINT));
   emit(whitespace);
@@ -96,9 +98,9 @@ export const print = P.seq((emit) => {
   emit(P.char(")"), "Expected `)` closing print call");
 
   return new Ast.Print(value);
-});
+}));
 
-export const variableDecl = P.seq((emit) => {
+export const variableDecl = P.tap("variableDecl")(P.seq((emit) => {
   emit(P.char("("));
   emit(def);
   emit(skip);
@@ -109,9 +111,9 @@ export const variableDecl = P.seq((emit) => {
   emit(P.char(")"), "Expected `)` closing variable declaration");
 
   return new Ast.VariableDecl(id.name, expr);
-});
+}));
 
-export const functionDecl = P.seq((emit) => {
+export const functionDecl = P.tap("functionDecl")(P.seq((emit) => {
   emit(P.char("("));
   emit(def);
   emit(skip);
@@ -127,7 +129,7 @@ export const functionDecl = P.seq((emit) => {
           return emit(identifier);
         }),
         cnst(""),
-        ((id) => id.name),
+        (id) => id.name,
       ),
     ),
   );
@@ -138,9 +140,9 @@ export const functionDecl = P.seq((emit) => {
   emit(P.char(")"), "Expected `)` closing function declaration");
 
   return new Ast.FunctionDecl(id.name, params, new Ast.Block(body));
-});
+}));
 
-export const cond = P.seq((emit) => {
+export const cond = P.tap("cond")(P.seq((emit) => {
   emit(P.char("("));
   emit(P.chars(Keywords.CONDITION));
   emit(skip);
@@ -195,9 +197,9 @@ export const cond = P.seq((emit) => {
   emit(P.char(")"), "Expected `)` closing cond expression");
 
   return new Ast.Cond(branches, elseBody);
-});
+}));
 
-export const array = P.seq((emit) => {
+export const array = P.tap("array")(P.seq((emit) => {
   emit(P.char("["));
   emit(skip);
 
@@ -214,9 +216,9 @@ export const array = P.seq((emit) => {
   emit(P.char("]"), "Expected `]` closing array literal");
 
   return new Ast.ArrayLit(items);
-});
+}));
 
-export const primary: P.Parser<Ast.Expr> = [
+export const primary: P.Parser<Ast.Expr> = P.tap("primary")([
   nil,
   number,
   string,
@@ -226,33 +228,38 @@ export const primary: P.Parser<Ast.Expr> = [
   cond,
   binary,
   call,
-].reduce(P.or);
+].reduce(P.or));
 
-export const memberRec: P.Parser<Ast.Expr[] | Ast.ParseError> = P.or(
-  P.seq((emit) => {
+export const memberRec: P.Parser<Ast.Expr[] | Ast.ParseError> = P.seq(
+  (emit) => {
     const target = emit(primary);
     emit(skip);
-    emit(P.char("/"));
+
+    const accessSeparator = emit(P.optional(P.char("/")));
+
+    if (!accessSeparator) {
+      return [target];
+    }
+
     emit(skip);
     const next = emit(memberRec);
 
     return [target, ...next];
-  }),
-  P.map(primary, (x) => [x]),
+  },
 );
 
-export const member = P.mapError(
+export const member = P.tap("member")(P.mapError(
   memberRec,
   id,
   (parts) =>
     parts.length === 1
       ? parts[0]
       : parts.reduce((member, part) => new Ast.Member(member, part)),
-);
+));
 
 export const unaryOpsP = unaryOps.map(P.chars).reduce(P.or);
 
-export const unary: P.Parser<Ast.Expr> = P.or(
+export const unary: P.Parser<Ast.Expr> = P.tap("unary")(P.or(
   P.seq((emit) => {
     const op = emit(unaryOpsP);
     const expr = emit(unary);
@@ -260,25 +267,27 @@ export const unary: P.Parser<Ast.Expr> = P.or(
     return new Ast.UnaryOp(op, expr);
   }),
   member,
+));
+
+export const expression = P.tap("expression")(unary);
+
+export const statement: P.Parser<Ast.Expr> = P.tap("statement")(
+  P.seq((emit) => {
+    emit(skip);
+
+    const expr = emit(
+      P.or(variableDecl, P.or(functionDecl, P.or(print, expression))),
+    );
+
+    return expr;
+  }),
 );
 
-export const expression = unary;
-
-export const statement: P.Parser<Ast.Expr> = P.seq((emit) => {
-  emit(skip);
-
-  const expr = emit(
-    P.or(variableDecl, P.or(functionDecl, P.or(print, expression))),
-  );
-
-  return expr;
-});
-
-export const mtlang = P.map(
+export const mtlang = P.tap("mtlang")(P.map(
   P.seq((emit) => {
     const stmts = emit(P.oneOrMore(statement), "Expected a statement");
     emit(skip);
     return stmts;
   }),
   (stmts) => Array.isArray(stmts) ? stmts : [stmts],
-);
+));
