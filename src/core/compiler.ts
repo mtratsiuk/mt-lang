@@ -71,8 +71,8 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return `const ${name} = ${this.compile(value)}`;
   }
 
-  visitFunctionDecl({ name, params, body }: Ast.FunctionDecl): string {
-    return `function ${name}(${params.join(", ")}) ${this.compile(body)}`;
+  visitFunctionExpr({ params, body }: Ast.FunctionExpr): string {
+    return `((${params.join(", ")}) => ${this.compile(body)})`;
   }
 
   visitMember({ target, key }: Ast.Member): string {

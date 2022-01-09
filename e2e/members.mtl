@@ -1,5 +1,6 @@
-(def (square x)
-  (* x x))
+(def square
+  (|x|
+    (* x x)))
 
 (print
   [1 2 42]/2)

@@ -95,8 +95,7 @@ defineExpr("Print", ["value", T.Expr]);
 defineExpr("Block", ["body", arrayType(T.Expr)]);
 
 defineExpr(
-  "FunctionDecl",
-  ["name", T.String],
+  "FunctionExpr",
   ["params", arrayType(T.String)],
   ["body", T.Block],
 );

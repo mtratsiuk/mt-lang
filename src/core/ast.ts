@@ -15,7 +15,7 @@ export type ExprVisitor<T> = {
   visitVariableDecl(value: VariableDecl): T;
   visitPrint(value: Print): T;
   visitBlock(value: Block): T;
-  visitFunctionDecl(value: FunctionDecl): T;
+  visitFunctionExpr(value: FunctionExpr): T;
   visitCond(value: Cond): T;
 };
 
@@ -170,17 +170,13 @@ export class Block extends Expr {
   }
 }
 
-export class FunctionDecl extends Expr {
-  constructor(
-    public name: string,
-    public params: string[],
-    public body: Block,
-  ) {
+export class FunctionExpr extends Expr {
+  constructor(public params: string[], public body: Block) {
     super();
   }
 
   accept<T>(visitor: ExprVisitor<T>): T {
-    return visitor.visitFunctionDecl(this);
+    return visitor.visitFunctionExpr(this);
   }
 }
 

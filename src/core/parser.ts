@@ -113,14 +113,11 @@ export const variableDecl = P.tap("variableDecl")(P.seq((emit) => {
   return new Ast.VariableDecl(id.name, expr);
 }));
 
-export const functionDecl = P.tap("functionDecl")(P.seq((emit) => {
+export const functionExpr = P.tap("functionExpr")(P.seq((emit) => {
   emit(P.char("("));
-  emit(def);
   emit(skip);
 
-  emit(P.char("("));
-  const id = emit(identifier, "Expected identifier");
-
+  emit(P.char("|"));
   const params = emit(
     P.many(
       P.mapError(
@@ -133,13 +130,13 @@ export const functionDecl = P.tap("functionDecl")(P.seq((emit) => {
       ),
     ),
   );
+  emit(P.char("|"), "Expected `|` after parameters list");
 
-  emit(P.char(")"), "Expected `)` after parameters list");
   emit(skip);
   const body = emit(P.oneOrMore(statement), "Expected a statement");
-  emit(P.char(")"), "Expected `)` closing function declaration");
+  emit(P.char(")"), "Expected `)` closing function expression");
 
-  return new Ast.FunctionDecl(id.name, params, new Ast.Block(body));
+  return new Ast.FunctionExpr(params, new Ast.Block(body));
 }));
 
 export const cond = P.tap("cond")(P.seq((emit) => {
@@ -226,6 +223,7 @@ export const primary: P.Parser<Ast.Expr> = P.tap("primary")([
   array,
   identifier,
   cond,
+  functionExpr,
   binary,
   call,
 ].reduce(P.or));
@@ -276,7 +274,7 @@ export const statement: P.Parser<Ast.Expr> = P.tap("statement")(
     emit(skip);
 
     const expr = emit(
-      P.or(variableDecl, P.or(functionDecl, P.or(print, expression))),
+      P.or(variableDecl, P.or(print, expression)),
     );
 
     return expr;

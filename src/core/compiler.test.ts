@@ -24,13 +24,14 @@ Deno.test("parse & compile", () => {
     ["(<= 10 5)", "(10 <= 5);"],
     ["(def mean (plus 40 2))", "const mean = plus(40, 2);"],
     [
-      `(def (mult a b)
-          (myMult a b))`,
+      `(def mult
+         (|a b|
+           (myMult a b)))`,
 
       `\
-function mult(a, b) {
+const mult = ((a, b) => {
   return myMult(a, b);
-};`,
+});`,
     ],
     ["(def value nil)", "const value = null;"],
     ["(def arr [1 true nil])", "const arr = [1, true, null];"],

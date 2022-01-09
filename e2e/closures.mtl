@@ -1,8 +1,9 @@
-(def (createPoint x y)
-  (def (point prop)
-    (cond
-      ((= prop "x") x)
-      ((= prop "y") y))))
+(def createPoint
+  (|x y|
+    (|prop|
+      (cond
+        ((= prop "x") x)
+        ((= prop "y") y)))))
 
 (def point (createPoint 10 20))
 
