@@ -1,0 +1,11 @@
+const printArray = ((arr) => {
+  return console.log(String(arr));
+});
+
+const printSomeArray = (() => {
+  return console.log(String([1, 2, 3]));
+});
+
+printArray(["one", 2, 3]);
+
+printSomeArray();

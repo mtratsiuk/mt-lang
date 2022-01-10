@@ -1,0 +1,9 @@
+const myConst = 10;
+
+const myFunc = ((p) => {
+  const local = 5;
+  const sub = (p - local);
+  return (myConst - sub);
+});
+
+console.log(String(myFunc(20)));

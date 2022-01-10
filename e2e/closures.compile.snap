@@ -1,0 +1,17 @@
+const createPoint = ((x, y) => {
+  return ((prop) => {
+    return (() => {
+      if ((prop === "x")) {
+        return x;
+      } else if ((prop === "y")) {
+        return y;
+      }
+    })();
+  });
+});
+
+const point = createPoint(10, 20);
+
+console.log(String(point("x")));
+
+console.log(String(point("y")));
