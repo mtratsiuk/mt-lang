@@ -1,0 +1,27 @@
+const __mtl_curry = f => (...args) => {
+  if (args.length >= f.length) {
+    return f(...args);
+  }
+
+  return __mtl_curry(f.bind(null, ...args));
+};
+
+console.log(String((1 + -2)));
+
+console.log(String((1 - 2)));
+
+console.log();
+
+console.log(String((2 + 2)));
+
+console.log(String((!true === false)));
+
+console.log(String((true && false)));
+
+console.log(String((true || false)));
+
+console.log(String((10 < 5)));
+
+console.log(String((10 >= 5)));
+
+console.log(String((10 <= 5)));

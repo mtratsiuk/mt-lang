@@ -1,5 +1,17 @@
-const sum = ((a, b, c) => {
+const __mtl_curry = f => (...args) => {
+  if (args.length >= f.length) {
+    return f(...args);
+  }
+
+  return __mtl_curry(f.bind(null, ...args));
+};
+
+const sum = __mtl_curry((a, b, c) => {
   return (a + (b + c));
 });
 
 console.log(String(sum(10, 20, 30)));
+
+console.log(String(sum(10)(20, 30)));
+
+console.log(String(sum(10)(20)(30)));

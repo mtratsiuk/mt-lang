@@ -1,3 +1,11 @@
+const __mtl_curry = f => (...args) => {
+  if (args.length >= f.length) {
+    return f(...args);
+  }
+
+  return __mtl_curry(f.bind(null, ...args));
+};
+
 const square = ((x) => {
   return (x * x);
 });

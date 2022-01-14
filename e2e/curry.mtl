@@ -1,0 +1,8 @@
+(def add
+  (|a b|
+    (+ a b)))
+
+(def array [2 4 8])
+
+(print
+  (array/map (add 2)))

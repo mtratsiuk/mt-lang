@@ -3,6 +3,21 @@ import { pass } from "../utils/mod.ts";
 import * as Ast from "./ast.ts";
 import { BinaryOps, UnaryOps } from "./keywords.ts";
 
+export enum Utils {
+  CURRY = "__mtl_curry",
+}
+
+const INLINED_UTILS = `\
+const ${Utils.CURRY} = f => (...args) => {
+  if (args.length >= f.length) {
+    return f(...args);
+  }
+
+  return ${Utils.CURRY}(f.bind(null, ...args));
+};
+
+`;
+
 const IDENT = 2;
 
 export type Compile = (value: Ast.Expr | Ast.Expr[]) => string;
@@ -11,7 +26,7 @@ export const compile: Compile = (value) => {
     value = [value];
   }
 
-  return value.map(Compiler.compile).join(";\n\n") + ";";
+  return INLINED_UTILS + value.map(Compiler.compile).join(";\n\n") + ";";
 };
 
 export class Compiler implements Ast.ExprVisitor<string> {
@@ -72,7 +87,9 @@ export class Compiler implements Ast.ExprVisitor<string> {
   }
 
   visitFunctionExpr({ params, body }: Ast.FunctionExpr): string {
-    return `((${params.join(", ")}) => ${this.compile(body)})`;
+    return `${params.length > 1 ? Utils.CURRY : ""}((${params.join(", ")}) => ${
+      this.compile(body)
+    })`;
   }
 
   visitMember({ target, key }: Ast.Member): string {

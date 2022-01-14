@@ -6,12 +6,10 @@ const __mtl_curry = f => (...args) => {
   return __mtl_curry(f.bind(null, ...args));
 };
 
-const myConst = 10;
-
-const myFunc = ((p) => {
-  const local = 5;
-  const sub = (p - local);
-  return (myConst - sub);
+const add = __mtl_curry((a, b) => {
+  return (a + b);
 });
 
-console.log(String(myFunc(20)));
+const array = [2, 4, 8];
+
+console.log(String(array.map(add(2))));

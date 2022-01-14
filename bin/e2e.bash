@@ -43,7 +43,7 @@ function test_snapshot() {
 function test_compile() {
   test_file=$1
   snapshot_file="${test_file%.*}.compile.snap"
-  actual_out=$(cat $test_file | ./bin/compile.bash)
+  actual_out=$(cat $test_file | ./bin/compile.bash) || return 1
 
   echo "compile snapshot test..."
 
@@ -53,7 +53,7 @@ function test_compile() {
 function test_eval() {
   test_file=$1
   snapshot_file="${test_file%.*}.eval.snap"
-  actual_out=$(cat $test_file | ./bin/compile.bash | ./bin/run.bash)
+  actual_out=$(cat $test_file | ./bin/compile.bash | ./bin/run.bash) || return 1
 
   echo "eval snapshot test..."
 
@@ -75,7 +75,7 @@ if (( $failed_tests > 0 )); then
   echo ""
   echo ""
   echo "$failed_tests tests failed"
-  echo "Please check snapshot diff output"
+  echo "Please check eval results & snapshot diff output"
   echo "If all changes are expected, run the same command with '--write' argument"
   exit 1
 fi

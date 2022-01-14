@@ -1,4 +1,12 @@
-const createPoint = ((x, y) => {
+const __mtl_curry = f => (...args) => {
+  if (args.length >= f.length) {
+    return f(...args);
+  }
+
+  return __mtl_curry(f.bind(null, ...args));
+};
+
+const createPoint = __mtl_curry((x, y) => {
   return ((prop) => {
     return (() => {
       if ((prop === "x")) {
