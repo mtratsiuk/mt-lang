@@ -285,7 +285,16 @@ export const mtlang = P.tap("mtlang")(P.map(
   P.seq((emit) => {
     const stmts = emit(P.oneOrMore(statement), "Expected a statement");
     emit(skip);
-    return stmts;
+
+    const end = emit(P.mapError(
+      P.seq((emit) => {
+        return emit(eof, "Expected end of file");
+      }),
+      (e) => [e],
+      cnst([]),
+    ));
+
+    return stmts.concat(end);
   }),
   (stmts) => Array.isArray(stmts) ? stmts : [stmts],
 ));
