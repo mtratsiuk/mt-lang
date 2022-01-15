@@ -31,10 +31,35 @@ export const identifier = P.tap("identifier")(P.seq((emit) => {
   return new Ast.Identifier(name);
 }));
 
-export const number = P.tap("number")(P.map(
-  P.oneOrMore(P.regexp(/[0-9]/)),
-  (chars) => new Ast.NumLit(+chars.join("")),
-));
+export const numberPart: P.Parser<string[] | Ast.ParseError> = P.or(
+  P.seq((emit) => {
+    const head = emit(P.oneOrMore(numeric));
+    const separator = emit(P.char("_"));
+    const tail = emit(numberPart);
+
+    return head.concat(separator, tail);
+  }),
+  P.oneOrMore(numeric),
+);
+
+export const number = P.tap("number")(
+  P.seq((emit) => {
+    const integer = emit(P.optional(numberPart)) ?? [];
+    const point = emit(P.optional(P.map(P.char("."), (x) => [x]))) ?? [];
+    const fraction = emit(P.optional(numberPart)) ?? [];
+
+    const number = integer.concat(point, fraction).filter((x) => x !== "_");
+
+    if (
+      number.length === 0 ||
+      (integer.length === 0 && fraction.length === 0)
+    ) {
+      emit(null);
+    }
+
+    return new Ast.NumLit(+number.join(""));
+  }),
+);
 
 export const string = P.tap("string")(P.seq((emit) => {
   emit(P.char('"'));

@@ -1,0 +1,21 @@
+const __mtl_curry = f => (...args) => {
+  if (args.length >= f.length) {
+    return f(...args);
+  }
+
+  return __mtl_curry(f.bind(null, ...args));
+};
+
+console.log(String(1));
+
+console.log(String(1000));
+
+console.log(String(-1000));
+
+console.log(String(1.2));
+
+console.log(String(0.2));
+
+console.log(String(1));
+
+console.log(String(1000000.2222));
