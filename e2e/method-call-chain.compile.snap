@@ -1,0 +1,35 @@
+const __mtl_curry = f => (...args) => {
+  if (args.length >= f.length) {
+    return f(...args);
+  }
+
+  return __mtl_curry(f.bind(null, ...args));
+};
+
+const createList = __mtl_curry((list, l, r) => {
+  return (() => {
+    if ((l === r)) {
+      return list;
+    } else {
+      return createList(list.concat(l), (l + 1), r);
+    }
+  })();
+});
+
+const testSum = ["1", "2", "3"].map(Number).reduce(__mtl_curry((c, r) => {
+  return (r + c);
+}), 0);
+
+const testDynMethod = ["1", "2", "3"][[".m.", ".a.", ".p."].join("").replaceAll(".", "")](Number).reduce(__mtl_curry((c, r) => {
+  return (r + c);
+}), 0);
+
+const testDynReceiver = createList([], 0, 10).filter(((x) => {
+  return ((x % 2) === 0);
+})).join(" | ");
+
+console.log(String(testSum));
+
+console.log(String(testDynMethod));
+
+console.log(String(testDynReceiver));

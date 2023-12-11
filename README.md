@@ -42,6 +42,14 @@
   (|x| (* x 2)))
 
 
+;; Method call chaining
+
+(def sum
+  (~> ["1" "2" "3"]
+   ~> map Number
+   ~> reduce (|c r| (+ r c)) 0))
+
+
 ;; Conditional evaluation
 
 (cond

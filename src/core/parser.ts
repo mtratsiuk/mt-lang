@@ -112,6 +112,51 @@ export const call = P.tap("call")(P.seq((emit) => {
   return new Ast.Call(callee, args);
 }));
 
+export const methodCallChain = P.tap("methodCallChain")(P.seq((emit) => {
+  emit(P.char("("));
+  emit(P.chars("~>"));
+  emit(skip);
+
+  const receiver = emit(
+    expression,
+    "Expected expression as a method call chain receiver",
+  );
+
+  const calls = emit(
+    P.oneOrMore(
+      P.mapError(
+        P.seq((emit) => {
+          emit(skip);
+          emit(P.chars("~>"));
+          emit(skip);
+
+          const target = emit(
+            expression,
+            "Expected expression as a target method to call",
+          );
+
+          const args = emit(
+            P.many(
+              P.seq((emit) => {
+                emit(skip);
+                return emit(expression);
+              }),
+            ),
+          );
+
+          return { target, args };
+        }),
+        (error) => ({ target: new Ast.Identifier("error"), args: [error] }),
+        id,
+      ),
+    ),
+  );
+
+  emit(P.char(")"), "Expected `)` closing method call chain");
+
+  return new Ast.MethodCallChain(receiver, calls);
+}));
+
 export const print = P.tap("print")(P.seq((emit) => {
   emit(P.char("("));
   emit(P.chars(Keywords.PRINT));
@@ -250,6 +295,7 @@ export const primary: P.Parser<Ast.Expr> = P.tap("primary")([
   cond,
   functionExpr,
   binary,
+  methodCallChain,
   call,
 ].reduce(P.or));
 

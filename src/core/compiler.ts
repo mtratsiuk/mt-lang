@@ -70,6 +70,21 @@ export class Compiler implements Ast.ExprVisitor<string> {
     return `${this.compile(callee)}(${args.map(this.compile).join(", ")})`;
   }
 
+  visitMethodCallChain({ receiver, calls }: Ast.MethodCallChain): string {
+    return `${this.compile(receiver)}${
+      calls
+        .map(({ target, args }) => {
+          const keyString = this.compile(target);
+          const accessor = target instanceof Ast.Identifier
+            ? `.${keyString}`
+            : `[${keyString}]`;
+
+          return `${accessor}(${args.map(this.compile).join(", ")})`;
+        })
+        .join("")
+    }`;
+  }
+
   visitPrint({ value }: Ast.Print): string {
     return `console.log(String(${this.compile(value)}))`;
   }

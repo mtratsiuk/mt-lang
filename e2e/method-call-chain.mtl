@@ -1,0 +1,24 @@
+(def createList
+  (|list l r|
+    (cond
+      ((= l r) list)
+      (else (createList (list/concat l) (+ l 1) r)))))
+
+(def testSum
+  (~> ["1" "2" "3"]
+   ~> map Number
+   ~> reduce (|c r| (+ r c)) 0))
+
+(def testDynMethod
+  (~> ["1" "2" "3"]
+   ~> (~> [".m." ".a." ".p."] ~> join "" ~> replaceAll "." "") Number
+   ~> reduce (|c r| (+ r c)) 0))
+
+(def testDynReceiver
+  (~> (createList [] 0 10)
+   ~> filter (|x| (= (% x 2) 0))
+   ~> join " | "))
+
+(print testSum)
+(print testDynMethod)
+(print testDynReceiver)
