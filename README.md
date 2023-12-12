@@ -1,6 +1,6 @@
 # mt-lang
 
-~Mihail Tratsiuk's~ My Tiny Lang
+~~Mihail Tratsiuk's~~ My Tiny Lang
 
 ## Syntax
 

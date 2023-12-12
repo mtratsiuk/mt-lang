@@ -89,155 +89,145 @@ export const createEmitParser: (state: State) => [EmitParser, GetState] = (
 export type Seq = <R>(
   seq: (emit: EmitParser) => R,
 ) => Parser<R | Ast.ParseError>;
-export const seq: Seq = (sequence) =>
-  (state) => {
-    const [emit, getState] = createEmitParser(state);
+export const seq: Seq = (sequence) => (state) => {
+  const [emit, getState] = createEmitParser(state);
 
-    try {
-      const result = sequence(emit);
+  try {
+    const result = sequence(emit);
 
-      return [result, getState()];
-    } catch (signal) {
-      if (signal instanceof SeqBreakSignal) {
-        return [null, state];
-      }
-
-      if (signal instanceof SeqErrorSignal) {
-        const err = new Ast.ParseError(
-          signal.message,
-          signal.line,
-          signal.start,
-          signal.end,
-        );
-        return [err, state.clone().error(err).synchronize()];
-      }
-
-      if (signal instanceof SeqDeepErrorSignal) {
-        return [signal.error, signal.state];
-      }
-
-      throw signal;
+    return [result, getState()];
+  } catch (signal) {
+    if (signal instanceof SeqBreakSignal) {
+      return [null, state];
     }
-  };
+
+    if (signal instanceof SeqErrorSignal) {
+      const err = new Ast.ParseError(
+        signal.message,
+        signal.line,
+        signal.start,
+        signal.end,
+      );
+      return [err, state.clone().error(err).synchronize()];
+    }
+
+    if (signal instanceof SeqDeepErrorSignal) {
+      return [signal.error, signal.state];
+    }
+
+    throw signal;
+  }
+};
 
 export type CreateParser = <T>(
   test: (param: T, char: string) => boolean,
 ) => (param: T) => Parser<string>;
-export const createParser: CreateParser = (test) =>
-  (param) =>
-    (state) => {
-      const char = state.peek();
+export const createParser: CreateParser = (test) => (param) => (state) => {
+  const char = state.peek();
 
-      if (!test(param, char)) {
-        return [null, state];
-      }
+  if (!test(param, char)) {
+    return [null, state];
+  }
 
-      return [char, state.clone().nextChar()];
-    };
+  return [char, state.clone().nextChar()];
+};
 
 export type Map = <T, K>(parser: Parser<T>, f: (x: T) => K) => Parser<K>;
-export const map: Map = (parser, f) =>
-  (state) => {
-    const [result, newState] = parser(state);
+export const map: Map = (parser, f) => (state) => {
+  const [result, newState] = parser(state);
 
-    if (result === null) {
-      return [null, state];
-    }
+  if (result === null) {
+    return [null, state];
+  }
 
-    return [f(result), newState];
-  };
+  return [f(result), newState];
+};
 
 export type MapError = <T, K>(
   parser: Parser<T | Ast.ParseError>,
   mapE: (x: Ast.ParseError) => K,
   mapV: (x: T) => K,
 ) => Parser<K>;
-export const mapError: MapError = (parser, mapE, mapV) =>
-  (state) => {
-    const [result, newState] = parser(state);
+export const mapError: MapError = (parser, mapE, mapV) => (state) => {
+  const [result, newState] = parser(state);
 
-    if (result === null) {
-      return [null, state];
-    }
+  if (result === null) {
+    return [null, state];
+  }
 
-    if (result instanceof Ast.ParseError) {
-      return [mapE(result), newState];
-    }
+  if (result instanceof Ast.ParseError) {
+    return [mapE(result), newState];
+  }
 
-    return [mapV(result), newState];
-  };
+  return [mapV(result), newState];
+};
 
 export type MapState = <T>(
   parser: Parser<T>,
   f: (x: T, s: State) => State,
 ) => Parser<T>;
-export const mapState: MapState = (parser, f) =>
-  (state) => {
-    const [result, newState] = parser(state);
+export const mapState: MapState = (parser, f) => (state) => {
+  const [result, newState] = parser(state);
 
-    if (result === null) {
-      return [null, state];
-    }
+  if (result === null) {
+    return [null, state];
+  }
 
-    return [result, f(result, newState.clone())];
-  };
+  return [result, f(result, newState.clone())];
+};
 
 export type Many = <T>(parser: Parser<T>) => Parser<T[]>;
-export const many: Many = (parser) =>
-  (state) => {
-    const result = [];
-    let parseResult;
+export const many: Many = (parser) => (state) => {
+  const result = [];
+  let parseResult;
 
-    for (;;) {
-      [parseResult, state] = parser(state);
+  for (;;) {
+    [parseResult, state] = parser(state);
 
-      if (parseResult !== null) {
-        result.push(parseResult);
-      }
-
-      if (parseResult === null || state.isAtEnd()) {
-        break;
-      }
+    if (parseResult !== null) {
+      result.push(parseResult);
     }
 
-    return [result, state];
-  };
+    if (parseResult === null || state.isAtEnd()) {
+      break;
+    }
+  }
+
+  return [result, state];
+};
 
 export type OneOrMore = <T>(parser: Parser<T>) => Parser<T[]>;
-export const oneOrMore: OneOrMore = (parser) =>
-  (state) => {
-    const [result, newState] = many(parser)(state);
+export const oneOrMore: OneOrMore = (parser) => (state) => {
+  const [result, newState] = many(parser)(state);
 
-    if (result?.length !== 0) {
-      return [result, newState];
-    }
+  if (result?.length !== 0) {
+    return [result, newState];
+  }
 
-    return [null, state];
-  };
+  return [null, state];
+};
 
 export type Or = <T, K>(left: Parser<T>, right: Parser<K>) => Parser<T | K>;
-export const or: Or = (left, right) =>
-  (state) => {
-    const [result, newState] = left(state);
+export const or: Or = (left, right) => (state) => {
+  const [result, newState] = left(state);
 
-    if (result !== null) {
-      return [result, newState];
-    }
+  if (result !== null) {
+    return [result, newState];
+  }
 
-    return right(state);
-  };
+  return right(state);
+};
 
 export type Optional = <T>(parser: Parser<T>) => Parser<T | undefined>;
-export const optional: Optional = (parser) =>
-  (state) => {
-    const [result, newState] = parser(state);
+export const optional: Optional = (parser) => (state) => {
+  const [result, newState] = parser(state);
 
-    if (result === null) {
-      return [undefined, newState];
-    }
+  if (result === null) {
+    return [undefined, newState];
+  }
 
-    return [result, newState];
-  };
+  return [result, newState];
+};
 
 export const regexp = createParser((p: RegExp, c) => c !== EOF && p.test(c));
 
@@ -250,28 +240,27 @@ let ident = -1;
 
 export type Tap = (name: string) => <T>(parser: Parser<T>) => Parser<T>;
 export const tap: Tap = (name) =>
-  !DEBUG ? id : (parser) =>
-    (state) => {
-      const incomingChars = state.source.slice(
-        state.location,
-        state.location + TAP_LOOKAHEAD,
+  !DEBUG ? id : (parser) => (state) => {
+    const incomingChars = state.source.slice(
+      state.location,
+      state.location + TAP_LOOKAHEAD,
+    );
+
+    try {
+      ident += 1;
+
+      console.log(
+        `${
+          " ".repeat(ident)
+        }[${ident}][l: ${state.line}, p: ${state.locationInLine}]: ${name} <~~ ${incomingChars}`,
       );
 
-      try {
-        ident += 1;
+      const [result, nextState] = parser(state);
 
-        console.log(
-          `${
-            " ".repeat(ident)
-          }[${ident}][l: ${state.line}, p: ${state.locationInLine}]: ${name} <~~ ${incomingChars}`,
-        );
+      console.log(`${" ".repeat(ident)}[${ident}] > `, result);
 
-        const [result, nextState] = parser(state);
-
-        console.log(`${" ".repeat(ident)}[${ident}] > `, result);
-
-        return [result, nextState];
-      } finally {
-        ident -= 1;
-      }
-    };
+      return [result, nextState];
+    } finally {
+      ident -= 1;
+    }
+  };
